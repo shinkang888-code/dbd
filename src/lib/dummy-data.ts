@@ -101,7 +101,7 @@ export const brandSpotlight = {
   tagline: "피부 장벽 과학을 서울의 감성으로",
   story:
     "성분 연구 12년, SEOULINE은 자극 없는 유효 성분 조합만을 고집합니다. 전 제품 더마 테스트 완료.",
-  image: u("1570194065650-d99fb4b38b17", 1200),
+  image: u("1631729371254-42c2892f0e6e", 1200),
   productSlugs: ["glow-serum", "cica-cream", "rice-cleanser", "hair-oil"],
 };
 
