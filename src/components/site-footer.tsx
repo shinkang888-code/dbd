@@ -1,26 +1,38 @@
-import { Link } from "@tanstack/react-router";
-import { MEDIA } from "@/lib/media";
+import Link from "next/link";
+import { ShieldCheck, Plane, RotateCcw } from "lucide-react";
+
+const TRUST = [
+  { icon: ShieldCheck, title: "정품 직소싱", desc: "브랜드 본사와 직계약, 100% 정품 보증" },
+  { icon: Plane, title: "관세 사전계산", desc: "결제 전 관세 포함 총액을 먼저 확인" },
+  { icon: RotateCcw, title: "15일 무료반품", desc: "단순 변심도 15일 이내 무료 반품" },
+];
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-border bg-secondary/40 mt-24">
-      <div className="mx-auto max-w-7xl px-6 py-12">
-        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div className="flex items-start gap-3">
-            <img
-              src={MEDIA.logo}
-              alt="KSAC"
-              className="h-10 w-10 rounded-xl object-cover border border-border bg-white"
-            />
+    <footer className="mt-20 border-t border-line bg-fog">
+      <div className="mx-auto grid max-w-6xl gap-6 px-4 py-10 sm:grid-cols-3">
+        {TRUST.map((t) => (
+          <div key={t.title} className="flex items-start gap-3">
+            <t.icon className="mt-0.5 size-6 shrink-0 text-sage" strokeWidth={1.6} />
             <div>
-              <div className="text-foreground font-bold">대한학술융합학회</div>
-              <div className="mt-1 text-xs font-semibold tracking-wider text-primary uppercase">KSAC</div>
-              <p className="mt-4 text-sm text-muted-foreground leading-relaxed">
-                서울특별시 서초구 서초중앙로22길 47, 인스161호 (서초동, 문화빌딩)
-              </p>
+              <p className="text-[14px] font-bold">{t.title}</p>
+              <p className="mt-0.5 text-[13px] text-dim">{t.desc}</p>
             </div>
           </div>
-          <div className="text-xs text-muted-foreground">© KSAC. All Rights Reserved.</div>
+        ))}
+      </div>
+      <div className="border-t border-line">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-6 text-[12px] text-dim">
+          <p className="font-display text-[18px] font-semibold text-ink">
+            LEXI<span className="text-coral">.</span>
+          </p>
+          <nav className="flex gap-4">
+            <Link href="/support">Support</Link>
+            <Link href="/support">Shipping & Duties</Link>
+            <Link href="/brands">Brands</Link>
+            <Link href="/admin">Admin</Link>
+          </nav>
+          <p>© 2026 LEXI. Curated K-Style, Delivered Worldwide.</p>
         </div>
       </div>
     </footer>

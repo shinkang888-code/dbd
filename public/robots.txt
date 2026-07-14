@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://ksacs.vercel.app/sitemap.xml

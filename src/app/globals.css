@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+/* LEXI Design Tokens — docs/lexi-master-spec.md §3.2 */
+@theme {
+  --color-ink: #111114;
+  --color-paper: #ffffff;
+  --color-fog: #f5f5f3;
+  --color-line: #e4e4e0;
+  --color-coral: #ff5c4d;
+  --color-coral-deep: #e03e30;
+  --color-sage: #5c7a6e;
+  --color-gold: #c9a05c;
+  --color-dim: #6e6e73;
+
+  --font-display: "Playfair Display", "Noto Serif KR", serif;
+  --font-sans: Pretendard, Inter, -apple-system, "Apple SD Gothic Neo",
+    "Noto Sans KR", sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-paper text-ink font-sans antialiased;
+  letter-spacing: -0.01em;
+}
+
+.price {
+  font-family: Inter, var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 스크롤바 숨김 (가로 스크롤 캐러셀) */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Bottom sheet / modal 등장 */
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+.animate-sheet-up {
+  animation: sheet-up 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
+}
