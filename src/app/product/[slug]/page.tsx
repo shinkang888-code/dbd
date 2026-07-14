@@ -2,21 +2,24 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Star, Camera, ShieldCheck } from "lucide-react";
-import { bySlug, finalPrice, products } from "@/lib/dummy-data";
 import { DutyCalculator } from "@/components/duty-calculator";
 import { ProductCard } from "@/components/product-card";
+import { AddToCartButton } from "@/components/add-to-cart-button";
+import { finalPrice, getProductBySlug, listProducts } from "@/lib/catalog";
+import { products as dummyProducts } from "@/lib/dummy-data";
 
 export function generateStaticParams() {
-  return products.map((p) => ({ slug: p.slug }));
+  return dummyProducts.map((p) => ({ slug: p.slug }));
 }
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const product = bySlug(slug);
+  const product = await getProductBySlug(slug);
   if (!product) notFound();
 
   const price = finalPrice(product);
-  const related = products
+  const all = await listProducts();
+  const related = all
     .filter((p) => p.category === product.category && p.slug !== product.slug)
     .slice(0, 4);
 
@@ -99,12 +102,15 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       <div className="fixed inset-x-0 bottom-16 z-30 border-t border-line bg-paper/95 p-3 backdrop-blur-md md:bottom-0">
         <div className="mx-auto flex max-w-6xl items-center gap-3">
           <p className="price hidden text-[18px] font-bold sm:block">${price}</p>
-          <button className="flex-1 rounded-xl border border-ink py-3.5 text-[14px] font-bold transition-colors hover:bg-fog">
+          <Link
+            href="/checkout"
+            className="flex-1 rounded-xl border border-ink py-3.5 text-center text-[14px] font-bold transition-colors hover:bg-fog"
+          >
             바로 구매
-          </button>
-          <button className="flex-1 rounded-xl bg-coral py-3.5 text-[14px] font-bold text-white transition-colors hover:bg-coral-deep">
-            장바구니 담기
-          </button>
+          </Link>
+          <div className="flex-1 [&_button]:rounded-xl [&_button]:bg-coral [&_button]:hover:bg-coral-deep">
+            <AddToCartButton slug={product.slug} />
+          </div>
         </div>
       </div>
     </article>

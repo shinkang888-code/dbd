@@ -1,12 +1,13 @@
-import { products } from "@/lib/dummy-data";
+// filepath: src/app/sale/page.tsx
 import { ProductCard } from "@/components/product-card";
+import { listProducts } from "@/lib/catalog";
 
 export const metadata = { title: "Sale" };
 
-export default function SalePage() {
-  const onSale = products
-    .filter((p) => p.discountRate > 0)
-    .sort((a, b) => b.discountRate - a.discountRate);
+export default async function SalePage() {
+  const onSale = (await listProducts({ saleOnly: true })).sort(
+    (a, b) => b.discountRate - a.discountRate,
+  );
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
       <h1 className="font-display text-[30px] font-semibold">

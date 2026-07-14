@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Search, Heart, ShoppingBag } from "lucide-react";
 import { UtilityStrip } from "./utility-strip";
+import { UserMenu } from "./user-menu";
+import { CartBadge } from "./cart-badge";
 
 const GNB = [
   { label: "Beauty", href: "/category/beauty" },
@@ -35,6 +37,7 @@ export function SiteHeader() {
           </nav>
 
           <div className="flex items-center gap-1">
+            <UserMenu />
             <Link href="/search" aria-label="검색" className="grid size-11 place-items-center rounded-full hover:bg-fog">
               <Search className="size-[22px]" strokeWidth={1.7} />
             </Link>
@@ -43,9 +46,7 @@ export function SiteHeader() {
             </Link>
             <Link href="/cart" aria-label="장바구니" className="relative grid size-11 place-items-center rounded-full hover:bg-fog">
               <ShoppingBag className="size-[22px]" strokeWidth={1.7} />
-              <span className="price absolute right-1 top-1 grid size-4.5 place-items-center rounded-full bg-coral text-[10px] font-bold text-white">
-                2
-              </span>
+              <CartBadge />
             </Link>
           </div>
         </div>

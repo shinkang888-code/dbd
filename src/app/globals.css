@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "@neondatabase/auth-ui/tailwind";
 
 /* LEXI Design Tokens — docs/lexi-master-spec.md §3.2 */
 @theme {

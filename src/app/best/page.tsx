@@ -1,10 +1,12 @@
-import { products } from "@/lib/dummy-data";
+// filepath: src/app/best/page.tsx
 import { ProductCard } from "@/components/product-card";
+import { listProducts } from "@/lib/catalog";
 
 export const metadata = { title: "Best" };
 
-export default function BestPage() {
-  const ranked = [...products].sort((a, b) => b.reviewCount - a.reviewCount);
+export default async function BestPage() {
+  const all = await listProducts();
+  const ranked = [...all].sort((a, b) => b.reviewCount - a.reviewCount);
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
       <h1 className="font-display text-[30px] font-semibold">Real-time Best</h1>

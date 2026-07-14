@@ -1,8 +1,10 @@
+// filepath: src/app/layout.tsx
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { SiteHeader } from "@/components/site-header";
 import { BottomTabBar } from "@/components/bottom-tab-bar";
 import { SiteFooter } from "@/components/site-footer";
+import { AuthProvider } from "@/components/auth-provider";
 
 export const metadata: Metadata = {
   title: { default: "LEXI — Curated K-Style, Delivered Worldwide", template: "%s | LEXI" },
@@ -20,7 +22,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ko">
+    <html lang="ko" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -34,10 +36,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="min-h-dvh pb-16 md:pb-0">
-        <SiteHeader />
-        <main>{children}</main>
-        <SiteFooter />
-        <BottomTabBar />
+        <AuthProvider>
+          <SiteHeader />
+          <main>{children}</main>
+          <SiteFooter />
+          <BottomTabBar />
+        </AuthProvider>
       </body>
     </html>
   );

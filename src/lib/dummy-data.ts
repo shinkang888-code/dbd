@@ -11,7 +11,7 @@ export type Product = {
   slug: string;
   name: string;
   brand: string;
-  category: "beauty" | "fashion" | "life";
+  category: "beauty" | "fashion" | "life" | "kids";
   price: number; // USD
   discountRate: number; // 0 | 10 | 20 | 30
   rating: number;
@@ -121,4 +121,8 @@ export const dutyTable: Record<string, { label: string; freeUnder: number; rate:
   SG: { label: "Singapore", freeUnder: 296, rate: 0.09, shipping: 6.9 },
   GB: { label: "United Kingdom", freeUnder: 170, rate: 0.2, shipping: 9.9 },
   AU: { label: "Australia", freeUnder: 665, rate: 0.1, shipping: 8.9 },
+  KR: { label: "Korea", freeUnder: 150, rate: 0.0, shipping: 0 },
+  ID: { label: "Indonesia", freeUnder: 3, rate: 0.1, shipping: 8.9 },
+  VN: { label: "Vietnam", freeUnder: 0, rate: 0.1, shipping: 7.9 },
+  PH: { label: "Philippines", freeUnder: 200, rate: 0.12, shipping: 8.9 },
 };

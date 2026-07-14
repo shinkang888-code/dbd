@@ -1,6 +1,7 @@
+// filepath: src/app/category/[cat]/page.tsx
 import { notFound } from "next/navigation";
-import { products } from "@/lib/dummy-data";
 import { ProductCard } from "@/components/product-card";
+import { listProducts } from "@/lib/catalog";
 
 const TITLES: Record<string, string> = {
   beauty: "Beauty",
@@ -18,7 +19,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ cat: 
   const title = TITLES[cat];
   if (!title) notFound();
 
-  const items = products.filter((p) => p.category === cat);
+  const items = await listProducts({ category: cat });
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
