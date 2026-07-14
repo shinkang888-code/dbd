@@ -1,0 +1,84 @@
+# KSAC 학술지 발행엔진 이식 기획
+# 기준일: 2026-07-14
+# 소스: https://github.com/shinkang888-code/lobooks
+# 배포 스튜디오: https://lobooks.vercel.app/lobook-studio
+# 배포 관리콘솔: https://lobooks.vercel.app/lobook-admin.html
+
+## 1. 원본 자산 매핑
+
+| Lobook (전자책) | KSAC 학술지 (논문 발행) |
+|---|---|
+| 도서(Book) | 권호(Issue / Vol·No) |
+| 챕터(Chapter) | 논문(Article) |
+| e-ISBN | ISSN + 논문 DOI (권호 eISSN 옵션) |
+| 표지 시안 승인 | 권호 표지·목차 확정 |
+| EPUB 검수 | 권호 PDF/웹북 + 논문 PDF 검수 |
+| 채널(리디·교보…) | KCI / 학지사 / 학회 웹 수록 |
+| 정산·로열티 | (1단계 제외) 게재료·별쇄 선택 |
+| 저자 계약 | 저작권양도·오픈액세스 라이선스 |
+| Studio 편집기 | 논문조판·권호 묶음 편집기 |
+
+핵심 파일
+- lobook-studio.html … 원고 편집 + WEB/EPUB/PDF/DOC/HWPX/MD 내보내기
+- lobook-admin.html … 대시보드·카탈로그·파이프라인·채널·정산·계약
+- publish_server.py … Pandoc 기반 서버 변환 (선택)
+
+## 2. 이식 원칙 (논문 발행 기준)
+
+1) 전자책 판매/프로모션/채널 정산은 KSAC 1차에 넣지 않는다.
+2) Studio 조판·내보내기 엔진은 최대한 재사용한다 (웹북·PDF·DOC·HWPX).
+3) 데이터 모델은 “권호 > 논문” 2단으로 Neon에 신규 둔다.
+4) 기존 /journal(자료실)과 분리: 공개 학술지는 /periodical 또는 /journal/issues.
+5) 외부 투고포털(SUBMISSION_PORTAL_URL)과 연결: 심사완료 원고 → 조판 대기열.
+
+## 3. 단계별 로드맵
+
+### Phase A — 진입·허브 (이번 작업)
+- 관리자 사이드바 “학술지” 메뉴
+- /admin/journal 발행 대시보드 허브
+- Studio 바로가기 (lobooks.vercel.app/lobook-studio)
+- 논문 발행 파이프라인 UI 골격 (상태: 투고접수→심사→조판→교정→발행)
+
+### Phase B — Studio KSAC 브랜드 이식
+- lobook-studio.html → public/ksac-journal-studio.html 또는 /admin/journal/studio
+- 라벨 치환: 도서→권호, 저자→교신저자, ISBN→DOI/ISSN
+- 기본 판형: A4 학술지 / 2단 옵션
+- 메타: 권·호·통권·발행일·ISSN·발간기관=대한학술융합학회
+
+### Phase C — Neon 데이터 + 권호 CMS
+테이블 초안
+- journal_issues(id, volume, number, year, title, cover_url, status, published_at, studio_project_json)
+- journal_articles(id, issue_id, title, authors jsonb, abstract, doi, pages, pdf_url, order_index, status)
+- journal_pipeline_events(id, article_id, from_status, to_status, note, actor, at)
+
+관리 화면
+- 권호 목록 / 신규 권호
+- 논문 배정·순서(목차)
+- Studio 프로젝트 연동(저장 .lobook ↔ DB)
+
+### Phase D — 공개 학술지 포털
+- /journal/issues : 권호 목록
+- /journal/issues/$id : 목차 + PDF/웹북
+- /journal/articles/$id : 논문 초록·본문·인용
+- sitemap·RSS 항목에 권호/논문 URL 추가
+
+### Phase E — 심사·유통 (후순위)
+- 학지사 SMOP 투고 상태 웹훅/수동 동기
+- KCI 메타 내보내기
+- DOI 등록 워크플로 (Crossref 등) — 별도 계약 후
+
+## 4. 추천 기술 선택
+
+A안 (권장 1차): Studio는 외부 URL/아이프레임으로 열고, KSAC는 권호·파이프라인·수록만 관리
+B안 (중기): Studio HTML을 KSAC 정적 자산으로 복제·브랜딩 (오프라인 동일 UX)
+C안 (장기): TipTap CMS + Pandoc 서버를 React 컴포넌트로 포팅
+
+지금은 A안 허브 + B안 준비(기획·버튼)로 진행.
+
+## 5. 성공 기준 (논문 1호 발행)
+
+1. 관리자가 권호 Vol.1 No.1 생성
+2. 논문 3편 이상 목차 배정
+3. Studio에서 권호 PDF/웹북 export
+4. 학회 사이트 권호 페이지에 공개
+5. robots/sitemap에 권호 URL 포함
