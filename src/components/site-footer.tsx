@@ -35,6 +35,20 @@ export function SiteFooter() {
           <p>© 2026 LEXI. Curated K-Style, Delivered Worldwide.</p>
         </div>
       </div>
+      <div className="border-t border-line">
+        <div className="mx-auto max-w-6xl px-4 py-6 text-[11px] leading-relaxed text-dim">
+          <p className="flex flex-wrap gap-x-3 gap-y-1">
+            <span>파트너스 사회적협동조합</span>
+            <span>대표 강준철</span>
+            <span>사업자등록번호 589-82-00469</span>
+            <span>법인등록번호 220151-0022471</span>
+          </p>
+          <p className="mt-1">제주특별자치도 제주시 구남로7길 33, 7층 703-2호(이도이동, 하늘그린)</p>
+          <p className="mt-2 text-[10.5px] text-dim/80">
+            LEXI는 파트너스 사회적협동조합이 운영하는 역직구 커머스 브랜드입니다.
+          </p>
+        </div>
+      </div>
     </footer>
   );
 }
