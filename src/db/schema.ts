@@ -172,3 +172,222 @@ export const dataModeAudit = pgTable("data_mode_audit", {
   actor: text("actor"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+/* ============================================================
+ * 역직구 대리점 도메인 — docs/lexi-dropship-integration-spec.md §1
+ * ============================================================ */
+
+/** 공급처 마스터 */
+export const suppliers = pgTable("suppliers", {
+  id: id(),
+  code: text("code").notNull().unique(),
+  name: text("name").notNull(),
+  homepage: text("homepage"),
+  connectorKind: text("connector_kind").notNull().default("mock"), // api|agent|scrape|mock
+  connectorConfig: jsonb("connector_config"),
+  currency: char("currency", { length: 3 }).notNull().default("USD"),
+  leadTimeDays: integer("lead_time_days").notNull().default(7),
+  asCenterUrl: text("as_center_url"),
+  asPolicy: text("as_policy"),
+  legalNote: text("legal_note"),
+  status: text("status").notNull().default("active"),
+  ...dummyCols,
+});
+
+/** 원본 상품 스냅샷 */
+export const supplierProducts = pgTable("supplier_products", {
+  id: id(),
+  supplierId: bigint("supplier_id", { mode: "number" }).notNull(),
+  externalId: text("external_id").notNull(),
+  url: text("url"),
+  rawTitle: text("raw_title").notNull(),
+  rawDescriptionHtml: text("raw_description_html"),
+  rawCategoryPath: text("raw_category_path").array(),
+  priceOriginal: numeric("price_original", { precision: 12, scale: 2 }).notNull(),
+  currency: char("currency", { length: 3 }).notNull().default("USD"),
+  stock: integer("stock").notNull().default(0),
+  sellerName: text("seller_name"),
+  sellerInfo: jsonb("seller_info"),
+  images: jsonb("images"),
+  optionSchema: jsonb("option_schema"),
+  contentHash: text("content_hash"),
+  fetchedAt: timestamp("fetched_at", { withTimezone: true }),
+  syncStatus: text("sync_status").notNull().default("ok"), // ok|stale|gone
+  ...dummyCols,
+});
+
+/** 즐겨찾기(소싱 컬렉션) */
+export const collections = pgTable("collections", {
+  id: id(),
+  slug: text("slug").notNull().unique(),
+  name: text("name").notNull(),
+  note: text("note"),
+  sort: integer("sort").notNull().default(0),
+  ownerEmail: text("owner_email"),
+  ...dummyCols,
+});
+
+export const collectionItems = pgTable("collection_items", {
+  id: id(),
+  collectionId: bigint("collection_id", { mode: "number" }).notNull(),
+  supplierProductId: bigint("supplier_product_id", { mode: "number" }).notNull(),
+  decision: text("decision").notNull().default("candidate"), // candidate|approved|rejected
+  pinnedAt: timestamp("pinned_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** AI 리뉴얼 산출물(리스팅 초안) */
+export const listingDrafts = pgTable("listing_drafts", {
+  id: id(),
+  supplierProductId: bigint("supplier_product_id", { mode: "number" }).notNull(),
+  collectionId: bigint("collection_id", { mode: "number" }),
+  version: integer("version").notNull().default(1),
+  title: text("title").notNull(),
+  subtitle: text("subtitle"),
+  descriptionHtml: text("description_html"),
+  seoKeywords: text("seo_keywords").array(),
+  designDoc: jsonb("design_doc"),
+  renderedHtml: text("rendered_html"),
+  assets: jsonb("assets"),
+  aiModel: text("ai_model"),
+  promptRef: text("prompt_ref"),
+  generationJobId: text("generation_job_id"),
+  costUsd: numeric("cost_usd", { precision: 10, scale: 4 }),
+  status: text("status").notNull().default("draft"), // draft|review|approved|rejected
+  reviewedBy: text("reviewed_by"),
+  reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+  ...dummyCols,
+});
+
+/** 게시 확정본 */
+export const listings = pgTable("listings", {
+  id: id(),
+  draftId: bigint("draft_id", { mode: "number" }).notNull().unique(),
+  productId: bigint("product_id", { mode: "number" }),
+  productSlug: text("product_slug"),
+  marginPolicy: jsonb("margin_policy"), // {type:'rate'|'fixed', value, minMarginUsd}
+  supplierCostUsd: numeric("supplier_cost_usd", { precision: 12, scale: 2 }),
+  sellPriceUsd: numeric("sell_price_usd", { precision: 12, scale: 2 }),
+  status: text("status").notNull().default("ready"), // ready|published|paused|retired
+  ...dummyCols,
+});
+
+/** 판매채널 */
+export const channels = pgTable("channels", {
+  id: id(),
+  code: text("code").notNull().unique(),
+  kind: text("kind").notNull(), // own|cafe24|coupang|shopee|lazada|qoo10|amazon|tiktok|marketplace
+  name: text("name").notNull(),
+  config: jsonb("config"), // {tradeModel, firstLineSupport, headerMap, ...}
+  ...dummyCols,
+});
+
+export const channelListings = pgTable("channel_listings", {
+  id: id(),
+  listingId: bigint("listing_id", { mode: "number" }).notNull(),
+  channelId: bigint("channel_id", { mode: "number" }).notNull(),
+  externalRef: text("external_ref"),
+  categoryOverride: jsonb("category_override"),
+  publishState: text("publish_state").notNull().default("queued"), // queued|pushed|live|failed|delisted
+  lastPushedAt: timestamp("last_pushed_at", { withTimezone: true }),
+  lastError: text("last_error"),
+  retryCount: integer("retry_count").notNull().default(0),
+  ...dummyCols,
+});
+
+/** 구매요청 인입 배치(엑셀/CSV) */
+export const importBatches = pgTable("import_batches", {
+  id: id(),
+  channelId: bigint("channel_id", { mode: "number" }).notNull(),
+  filename: text("filename"),
+  rowCount: integer("row_count").notNull().default(0),
+  okCount: integer("ok_count").notNull().default(0),
+  errorRows: jsonb("error_rows"),
+  importedBy: text("imported_by"),
+  importedAt: timestamp("imported_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** 판매채널 구매요청 */
+export const purchaseRequests = pgTable("purchase_requests", {
+  id: id(),
+  channelId: bigint("channel_id", { mode: "number" }).notNull(),
+  importBatchId: bigint("import_batch_id", { mode: "number" }),
+  externalOrderRef: text("external_order_ref").notNull(),
+  channelListingId: bigint("channel_listing_id", { mode: "number" }),
+  rawRow: jsonb("raw_row"),
+  buyerName: text("buyer_name"),
+  buyerCountry: char("buyer_country", { length: 2 }),
+  shippingAddress: jsonb("shipping_address"),
+  qty: integer("qty").notNull().default(1),
+  channelPaidAmount: numeric("channel_paid_amount", { precision: 12, scale: 2 }),
+  channelCurrency: char("channel_currency", { length: 3 }),
+  status: text("status").notNull().default("received"),
+  // received|matched|vetted|sourcing|fulfilled|closed|rejected|refund_delegated
+  vettedBy: text("vetted_by"),
+  vettedAt: timestamp("vetted_at", { withTimezone: true }),
+  rejectReason: text("reject_reason"),
+  ...dummyCols,
+});
+
+/** 공급처 발주 */
+export const sourcingOrders = pgTable("sourcing_orders", {
+  id: id(),
+  purchaseRequestId: bigint("purchase_request_id", { mode: "number" }).notNull().unique(),
+  supplierId: bigint("supplier_id", { mode: "number" }).notNull(),
+  supplierProductId: bigint("supplier_product_id", { mode: "number" }).notNull(),
+  orderPayload: jsonb("order_payload"),
+  supplierOrderRef: text("supplier_order_ref"),
+  trackingNo: text("tracking_no"),
+  carrier: text("carrier"),
+  costUsd: numeric("cost_usd", { precision: 12, scale: 2 }),
+  shippingUsd: numeric("shipping_usd", { precision: 12, scale: 2 }),
+  status: text("status").notNull().default("requested"),
+  // requested|confirmed|shipped|delivered|settled|failed|cancelled|as_delegated
+  asTicketRef: text("as_ticket_ref"),
+  ...dummyCols,
+});
+
+/** 정산(마진 원장) */
+export const settlements = pgTable("settlements", {
+  id: id(),
+  sourcingOrderId: bigint("sourcing_order_id", { mode: "number" }).notNull().unique(),
+  revenueUsd: numeric("revenue_usd", { precision: 12, scale: 2 }),
+  costUsd: numeric("cost_usd", { precision: 12, scale: 2 }),
+  shippingUsd: numeric("shipping_usd", { precision: 12, scale: 2 }),
+  channelFeeUsd: numeric("channel_fee_usd", { precision: 12, scale: 2 }),
+  pgFeeUsd: numeric("pg_fee_usd", { precision: 12, scale: 2 }),
+  marginUsd: numeric("margin_usd", { precision: 12, scale: 2 }),
+  fxRate: numeric("fx_rate", { precision: 12, scale: 6 }),
+  settledAt: timestamp("settled_at", { withTimezone: true }),
+  status: text("status").notNull().default("pending"), // pending|confirmed
+  ...dummyCols,
+});
+
+/** 환율 (기준통화 USD) */
+export const fxRates = pgTable("fx_rates", {
+  currency: char("currency", { length: 3 }).primaryKey(),
+  usdPerUnit: numeric("usd_per_unit", { precision: 14, scale: 8 }).notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** 커머스 상태 전이 감사 로그 */
+export const commerceAudit = pgTable("commerce_audit", {
+  id: id(),
+  entity: text("entity").notNull(),
+  entityId: text("entity_id").notNull(),
+  fromState: text("from_state"),
+  toState: text("to_state"),
+  actor: text("actor"),
+  meta: jsonb("meta"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * HQ 런타임 스냅샷 (v1 내구화 계층)
+ * v1은 메모리 스토어 상태를 JSON 스냅샷으로 저장/복원한다.
+ * 관계형 테이블로의 완전 이관은 M7(스펙 §7 이후 단계).
+ */
+export const hqState = pgTable("hq_state", {
+  key: text("key").primaryKey(),
+  value: jsonb("value").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});

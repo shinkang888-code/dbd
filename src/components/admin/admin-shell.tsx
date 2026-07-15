@@ -10,6 +10,7 @@ const TABS = [
   { href: "/admin/orders", label: "주문" },
   { href: "/admin/banners", label: "배너" },
   { href: "/admin/cafe24", label: "Cafe24" },
+  { href: "/admin/sourcing", label: "역직구" },
 ];
 
 export function AdminShell({ children }: { children: React.ReactNode }) {

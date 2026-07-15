@@ -10,6 +10,17 @@ export type Strategy = "soft" | "hard";
 
 /** is_dummy 정리 대상 테이블 — FK 역순 */
 const PURGE_ORDER = [
+  // 역직구 도메인 (FK 역순) — 스펙 §1
+  "settlements",
+  "sourcing_orders",
+  "purchase_requests",
+  "channel_listings",
+  "listings",
+  "listing_drafts",
+  "supplier_products",
+  "suppliers",
+  "channels",
+  // 커머스 코어
   "order_items",
   "orders",
   "reviews",

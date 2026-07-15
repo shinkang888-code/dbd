@@ -2,9 +2,13 @@
 import { auth } from "./server";
 
 export async function requireSession() {
-  const { data: session } = await auth.getSession();
-  if (!session?.user) return null;
-  return session;
+  try {
+    const { data: session } = await auth.getSession();
+    if (!session?.user) return null;
+    return session;
+  } catch {
+    return null; // Neon Auth 미설정/네트워크 오류 시 게스트로 처리
+  }
 }
 
 export async function requireAdmin() {
