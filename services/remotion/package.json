@@ -1,0 +1,20 @@
+{
+  "name": "lexi-remotion",
+  "version": "0.1.0",
+  "private": true,
+  "description": "LEXI 숏폼 마케팅 영상 렌더 (스토리보드 JSON → MP4) — M10",
+  "scripts": {
+    "studio": "remotion studio",
+    "render": "remotion render StoryboardVideo out/video.mp4"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.0",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "remotion": "4.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "19.0.0",
+    "typescript": "5.7.0"
+  }
+}

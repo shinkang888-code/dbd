@@ -23,5 +23,19 @@ export async function GET(req: Request) {
     settlements: s.settlements,
     audit: s.audit.slice(0, 100),
     fx: s.fx,
+    // AI 마케팅 피드 — 무거운 필드(renderedHtml·embedding)는 목록에서 제외, 상세는 [id]에서 조회
+    marketingAssets: s.marketingAssets.map(({ renderedHtml, embedding, payload, ...a }) => ({
+      ...a,
+      hasPreview: !!renderedHtml,
+      summary:
+        a.type === "hooks" ? { count: (payload.hooks as unknown[])?.length ?? 0 }
+        : a.type === "copy" ? { count: (payload.copy as unknown[])?.length ?? 0 }
+        : a.type === "cardnews" ? { slides: (payload.slides as unknown[])?.length ?? 0 }
+        : a.type === "storyboard" ? { scenes: ((payload.storyboard as { scenes?: unknown[] })?.scenes)?.length ?? 0 }
+        : {},
+    })),
+    marketingLearnings: s.marketingLearnings.slice(0, 100),
+    campaignLog: s.campaignLog.slice(0, 100),
+    contentCategories: s.contentCategories.map((c) => c.name),
   });
 }

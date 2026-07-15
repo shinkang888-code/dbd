@@ -14,6 +14,10 @@ import type {
   SourcingOrder, Supplier, SupplierProduct,
 } from "./types";
 import { DEFAULT_FX } from "./types";
+import type {
+  CampaignLogEntry, ContentCategory, MarketingAsset, MarketingLearning,
+} from "@/lib/marketing/types";
+import { DEFAULT_CATEGORIES } from "@/lib/marketing/categories";
 
 export type HqState = {
   seq: number;
@@ -31,6 +35,11 @@ export type HqState = {
   settlements: Settlement[];
   audit: AuditEntry[];
   fx: Record<string, number>;
+  // M8~M11 AI 마케팅 피드
+  marketingAssets: MarketingAsset[];
+  marketingLearnings: MarketingLearning[];
+  campaignLog: CampaignLogEntry[];
+  contentCategories: ContentCategory[];
 };
 
 const now = () => new Date().toISOString();
@@ -72,6 +81,10 @@ function seedState(): HqState {
     settlements: [],
     audit: [],
     fx: { ...DEFAULT_FX },
+    marketingAssets: [],
+    marketingLearnings: [],
+    campaignLog: [],
+    contentCategories: DEFAULT_CATEGORIES.map((c) => ({ ...c, seeds: [...c.seeds] })),
   };
 }
 
