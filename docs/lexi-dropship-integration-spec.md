@@ -1,4 +1,4 @@
-# LEXI 역직구 대리점 플랫폼 — 통합 개발명세서 v1.1
+# LEXI 역직구 대리점 플랫폼 — 통합 개발명세서 v1.2
 
 > **비즈니스 모델**: 글로벌 대리점(Agency/Dropship 중개). 공급처 상품을 소싱→AI 리뉴얼→판매채널에 게시→구매요청 검수 후 공급처 발주→차액(마진) 수취. 재고·물류·반품 의무 없음(반품은 공급처 A/S 위임).
 >
@@ -279,8 +279,9 @@ sourcing_order: requested → confirmed → shipped → delivered → settled
 
 | 채널 | API | 인증 | 상품 게시 | 주문 수신 | 우선순위 |
 |---|---|---|---|---|---|
-| **Shopee** | Shopee Open Platform (open.shopee.com) | partner_id + HMAC-SHA256 서명, shop 단위 OAuth | `product/add_item` 일괄등록 — 대량등록 최적 | `order/get_order_list` 폴링 + 푸시 웹훅 → purchase_requests 자동 인입 (**엑셀 불필요**) | **P0 (1호)** |
-| **Lazada** | Lazada Open Platform (open.lazada.com) | app key + HMAC 서명 (알리바바 계열 — 1688 데이터 구조와 필드 호환성 높음) | `/product/create` | `/orders/get` 폴링 | **P1** |
+| **Coupang (쿠팡)** | Wing Open API (developers.coupangcorp.com, `api-gateway.coupang.com`) | Wing에서 발급한 vendorId + AccessKey/SecretKey, 요청별 **HMAC-SHA256 서명**(CEA 알고리즘) | `POST /v2/.../marketplace/seller-products` — 카테고리 자동추천 API·옵션·상세HTML(AI 리뉴얼 renderedHtml 그대로 투입) 지원 | `GET .../ordersheets` 일 단위 폴링 → 자동 purchase_requests 인입, 발주확인(acknowledge)·송장업로드 API로 회신 (**엑셀 불필요**) | **P0 (1호)** |
+| **Shopee** | Shopee Open Platform (open.shopee.com) | partner_id + HMAC-SHA256 서명, shop 단위 OAuth | `product/add_item` 일괄등록 — 대량등록 최적 | `order/get_order_list` 폴링 + 푸시 웹훅 | **P1** |
+| **Lazada** | Lazada Open Platform (open.lazada.com) | app key + HMAC 서명 (알리바바 계열 — 1688 데이터 구조와 필드 호환성 높음) | `/product/create` | `/orders/get` 폴링 | **P2** |
 | **Qoo10 Japan** | QAPI (api.qoo10.jp) — 구식이지만 동작하는 REST | 판매자 인증키(QSM 발급) | `ItemsBasic.SetNewGoods` | `ShippingBasic.GetShippingInfo` 폴링 + **QSM 주문 엑셀 다운로드 병행**(P5 엑셀 인입 경로가 여기서 실사용) | **P1** (일본 고마진 K-뷰티) |
 | **Amazon Global** | SP-API | LWA OAuth + AWS SigV4 (난이도 최고) | Listings API + **A+ Content API** ← AI 리뉴얼 designDoc과 직결 | Orders API + SQS 알림 | P2 |
 | **TikTok Shop** | TikTok Shop Partner API | 파트너 앱 OAuth | 상품 API + **loyadbeta SocialPublish/ReelsAuto 패널과 결합**: listing 승인 시 숏폼 홍보 잡 자동 enqueue (기존 SNS 파이프라인의 유일한 직접 시너지) | 주문 API | P2 |
@@ -289,12 +290,20 @@ sourcing_order: requested → confirmed → shipped → delivered → settled
 
 ### 9.3 우선 구현 조합 (Phase A)
 
-**CJDropshipping(소싱·발주) × Shopee(게시·주문수신)** — 양쪽 다 완전 API라 엑셀·수동 단계 없이 M2~M5를 순수 자동 파이프라인으로 검증 가능. Superbuy를 붙이는 순간 1688/타오바오 전체가 소싱 풀로 들어옴(Phase B). Qoo10은 엑셀 인입 경로(P5-1)의 실전 검증 채널로 Phase B에 배치. 환율 테이블에 CNY/SGD/JPY 추가, `USD_KRW_RATE` → `fx_rates` 테이블로 승격.
+**CJDropshipping(소싱·발주) × Coupang(게시·주문수신)** — 양쪽 다 완전 API라 엑셀·수동 단계 없이 M2~M5를 순수 자동 파이프라인으로 검증 가능. 이후 Superbuy(Phase B)로 1688/타오바오가 소싱 풀에 합류하고, Shopee/Qoo10(Phase B)으로 해외 판매 확장. Qoo10은 엑셀 인입 경로(P5-1)의 실전 검증 채널. 환율은 `USD_KRW_RATE` 단일 env → `fx_rates` 테이블(USD/CNY/KRW/SGD/JPY)로 승격.
+
+**Coupang 특이사항 (구현·법무 체크리스트)**
+1. **판매 모델 구분**: 중국 소싱→쿠팡 국내 판매는 엄밀히 '해외 구매대행'. Wing 상품 등록 시 구매대행 상품 고지(원산지·수입신고 문구) 필드를 채워야 하며, `channels.config.tradeModel:'purchase-agency'`로 표시.
+2. **반품 위임 불가**: 한국 전자상거래법상 청약철회(7일)는 판매자(=우리) 의무 — §6의 `refund_delegated`는 쿠팡 채널에서 **내부 원가 회수용**(공급처 AS에 비용 청구)으로만 동작하고, 소비자 응대는 `firstLineSupport:true` 강제. 반품지 주소는 배대지/국내 회수지 지정 필요.
+3. **인증 규제**: KC 인증 대상 카테고리(전자·유아·식품접촉)는 큐레이션 단계에서 차단 필터 — `collection_items.decision='rejected'` 자동 룰 + 카테고리 블랙리스트 테이블.
+4. **정산 주기**: 쿠팡 정산(주/월 단위, 판매대금 유보)을 `settlements.status='pending'` 유지 기간에 반영 — 현금흐름 리포트에 유보금 항목 추가.
+5. 상품 등록 시 쿠팡 카테고리 매핑: `카테고리 추천 API` 호출 → 실패 시 관리자 수동 매핑 UI (channel_listings에 `categoryOverride` jsonb).
 
 ### 9.4 신규 env
 
 ```
 CJ_API_EMAIL= / CJ_API_KEY=
+COUPANG_VENDOR_ID= / COUPANG_ACCESS_KEY= / COUPANG_SECRET_KEY=
 SUPERBUY_APP_KEY= / SUPERBUY_APP_SECRET=
 SHOPEE_PARTNER_ID= / SHOPEE_PARTNER_KEY= / SHOPEE_SHOP_ID=
 LAZADA_APP_KEY= / LAZADA_APP_SECRET=
@@ -306,7 +315,7 @@ QOO10_API_KEY= / QOO10_SELLER_ID=
 | # | 질문 | 기본안 |
 |---|---|---|
 | 1 | ~~1호 공급처~~ → **CJDropshipping 확정** (P0) | — |
-| 2 | ~~1호 판매처~~ → **Shopee 확정** (P0). Shopee 셀러 계정·open platform 앱 등록은 사장님 명의 필요 — 계정 생성 후 partner_id/key 전달 요망 | 수령 전까지 모의 모드 |
+| 2 | ~~1호 판매처~~ → **Coupang 확정** (P0). Wing 셀러 가입 + OpenAPI 키(vendorId/AccessKey/SecretKey) 발급은 사장님 명의 필요. 구매대행 판매를 위한 통신판매업 신고 여부도 확인 | 수령 전까지 모의 모드 |
 | 3 | AI 리뉴얼 언어: Shopee(EN/현지어)·Qoo10(JA) — EN+JA 2개 동시 생성? | EN 우선, JA는 Qoo10 착수 시 |
 | 4 | loyadbeta와 lexistyle 장기 통합 여부 | 당분간 분리 + HQ API 연동(D2) |
 | 5 | Cafe24 발주/주문 쓰기용 OAuth 토큰 발급 상태? | 미발급 시 M5까지 모의 모드 |
