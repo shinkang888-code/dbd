@@ -27,8 +27,20 @@ export function HeroEditorial() {
         className="no-scrollbar flex snap-x snap-mandatory overflow-x-auto"
       >
         {heroSlides.map((s) => (
-          <div key={s.id} className="relative aspect-[4/5] w-full shrink-0 snap-center md:aspect-[21/9]">
-            <Image src={s.image} alt="" fill priority sizes="100vw" className="object-cover" />
+          <div
+            key={s.id}
+            className="relative aspect-[4/5] w-full shrink-0 snap-center md:aspect-auto md:h-[min(78svh,780px)]"
+          >
+            {/* 데스크톱: 원본 전체가 보이도록 contain + 블러 확장 배경 (모바일은 기존 cover 유지) */}
+            <Image
+              src={s.image}
+              alt=""
+              aria-hidden
+              fill
+              sizes="100vw"
+              className="hidden scale-110 object-cover blur-2xl brightness-[.55] md:block"
+            />
+            <Image src={s.image} alt="" fill priority sizes="100vw" className="object-cover md:object-contain" />
             <div className="absolute inset-0 bg-gradient-to-t from-ink/60 via-ink/10 to-transparent" />
             <div className="absolute inset-x-0 bottom-0 mx-auto max-w-6xl px-5 pb-12 text-white">
               <p className="text-[11px] font-bold tracking-[0.2em] text-white/80">{s.eyebrow}</p>

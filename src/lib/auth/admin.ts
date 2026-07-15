@@ -1,7 +1,27 @@
 // filepath: src/lib/auth/admin.ts
+import { cookies } from "next/headers";
 import { auth } from "./server";
+import { SESSION_COOKIE, verifySessionToken } from "./session";
 
 export async function requireSession() {
+  // 1) 자체 Google OAuth 세션 (Neon Auth와 독립)
+  try {
+    const jar = await cookies();
+    const user = await verifySessionToken(jar.get(SESSION_COOKIE)?.value);
+    if (user) {
+      return {
+        user: {
+          id: `google:${user.email}`,
+          email: user.email,
+          name: user.name ?? user.email,
+          image: null as string | null,
+        },
+      };
+    }
+  } catch {
+    /* cookies() 사용 불가 컨텍스트 → Neon Auth로 폴백 */
+  }
+  // 2) Neon Auth 세션
   try {
     const { data: session } = await auth.getSession();
     if (!session?.user) return null;

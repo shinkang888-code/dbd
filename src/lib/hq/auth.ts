@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
+import { isDemoRequest } from "@/lib/auth/demo";
 
 /**
  * HQ API 인증 — 스펙 §0 D2
@@ -13,6 +14,7 @@ export async function hqActor(req: Request): Promise<string | null> {
   if (token && header === `Bearer ${token}`) return "hq-api";
   const session = await requireAdmin().catch(() => null);
   if (session?.user?.email) return session.user.email;
+  if (await isDemoRequest(req)) return "demo-admin";
   if (!token && process.env.NODE_ENV !== "production") return "dev";
   // 데모 개방은 명시적 opt-in만 허용 (기본은 잠금)
   if (!token && process.env.HQ_ALLOW_ANON === "1") return "anon-demo";
