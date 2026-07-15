@@ -1,4 +1,4 @@
-# LEXI 역직구 대리점 플랫폼 — 통합 개발명세서 v1.0
+# LEXI 역직구 대리점 플랫폼 — 통합 개발명세서 v1.1
 
 > **비즈니스 모델**: 글로벌 대리점(Agency/Dropship 중개). 공급처 상품을 소싱→AI 리뉴얼→판매채널에 게시→구매요청 검수 후 공급처 발주→차액(마진) 수취. 재고·물류·반품 의무 없음(반품은 공급처 A/S 위임).
 >
@@ -261,12 +261,53 @@ sourcing_order: requested → confirmed → shipped → delivered → settled
 4. **가격/환율**: 발주 시점 환율 고정 저장(`settlements.fxRate`), 마진 미달 자동 경고 임계값 `minMarginUsd`.
 5. **비밀정보**: 커넥터 인증키·HQ_API_TOKEN은 Vercel env로만, DB의 connectorConfig에는 참조 키만.
 
-## 9. 결정 필요사항 (기본안 포함)
+## 9. 확정된 공급처·판매처 커넥터 매트릭스 (v1.1)
+
+### 9.1 공급처 커넥터 — 실제 API 현황 기준 구현 전략
+
+| 공급처 | API 현황 (현실) | 커넥터 전략 | 발주(placeOrder) | 우선순위 |
+|---|---|---|---|---|
+| **CJDropshipping** | ✅ 공식 REST API (developers.cjdropshipping.com) — 상품목록/상세/재고/주문생성/트래킹 전부 제공, 이메일+API키 토큰 인증 | `connectors/cjdropshipping.ts` **완전 자동**. 상품 카탈로그 → supplier_products 직행 | ✅ API 직접 발주 + 트래킹 웹훅 | **P0 (1호)** |
+| **Superbuy** (구매대행 레이어) | ✅ 오픈 API 제공 — 1688/타오바오 상품 파라미터 조회·대리구매 주문·창고/배송 API | `connectors/superbuy.ts` — **1688·타오바오의 발주 게이트웨이**로 사용 (직접 계정 없이 대리구매) | ✅ 대리구매 API | **P0** |
+| **1688** | ⚠️ open.1688.com은 중국 사업자 인증 필요. 외국 법인 직접 연동 사실상 불가 | 상품 데이터: Superbuy 상품조회 API 경유(URL/ID 입력→파싱된 정규 데이터 수신). 직접 스크래핑은 약관·안티봇 리스크로 배제 | Superbuy 경유 | P0 (Superbuy에 포함) |
+| **Taobao** | ⚠️ Taobao Open Platform 폐쇄적(중국 개발자 계정). 단, 상품페이지 구조 파싱 난이도는 낮은 편 | 1688과 동일하게 Superbuy 경유를 기본. 보조로 URL 단건 임포트(관리자가 URL 붙여넣기→서버 파싱→supplier_products 1건 생성) | Superbuy 경유 | P1 |
+| **Pinduoduo** | ❌ 해외 개방 API 없음 + 업계 최강 안티봇. 자동화 투자 대비 효율 최악 | **백로그**. 수동 단건 임포트 폼(관리자가 상품정보 직접 입력)만 지원 | 수동 발주 | P3 (보류) |
+
+> 구현 함의: `SupplierConnector`에 `importByUrl(url): Promise<RemoteProductDetail>` 옵션 메서드 추가 (Superbuy/Taobao URL 단건 임포트용). `suppliers.connectorKind`에 `'agent'`(대행 API) 값 추가.
+
+### 9.2 판매채널 어댑터 — 인증·게시·주문수신 방식
+
+| 채널 | API | 인증 | 상품 게시 | 주문 수신 | 우선순위 |
+|---|---|---|---|---|---|
+| **Shopee** | Shopee Open Platform (open.shopee.com) | partner_id + HMAC-SHA256 서명, shop 단위 OAuth | `product/add_item` 일괄등록 — 대량등록 최적 | `order/get_order_list` 폴링 + 푸시 웹훅 → purchase_requests 자동 인입 (**엑셀 불필요**) | **P0 (1호)** |
+| **Lazada** | Lazada Open Platform (open.lazada.com) | app key + HMAC 서명 (알리바바 계열 — 1688 데이터 구조와 필드 호환성 높음) | `/product/create` | `/orders/get` 폴링 | **P1** |
+| **Qoo10 Japan** | QAPI (api.qoo10.jp) — 구식이지만 동작하는 REST | 판매자 인증키(QSM 발급) | `ItemsBasic.SetNewGoods` | `ShippingBasic.GetShippingInfo` 폴링 + **QSM 주문 엑셀 다운로드 병행**(P5 엑셀 인입 경로가 여기서 실사용) | **P1** (일본 고마진 K-뷰티) |
+| **Amazon Global** | SP-API | LWA OAuth + AWS SigV4 (난이도 최고) | Listings API + **A+ Content API** ← AI 리뉴얼 designDoc과 직결 | Orders API + SQS 알림 | P2 |
+| **TikTok Shop** | TikTok Shop Partner API | 파트너 앱 OAuth | 상품 API + **loyadbeta SocialPublish/ReelsAuto 패널과 결합**: listing 승인 시 숏폼 홍보 잡 자동 enqueue (기존 SNS 파이프라인의 유일한 직접 시너지) | 주문 API | P2 |
+
+> 구현 함의: `channels.kind`에 `'shopee'|'lazada'|'qoo10'|'amazon'|'tiktok'` 추가. 채널 어댑터 인터페이스 `ChannelAdapter { publish(listing), pullOrders(since), ackOrder(ref) }`를 `src/lib/channels/`에 신설 — P4 publish-worker와 P5 인입이 같은 어댑터를 공유. 서명 로직(HMAC/SigV4)은 어댑터 내부 캡슐화.
+
+### 9.3 우선 구현 조합 (Phase A)
+
+**CJDropshipping(소싱·발주) × Shopee(게시·주문수신)** — 양쪽 다 완전 API라 엑셀·수동 단계 없이 M2~M5를 순수 자동 파이프라인으로 검증 가능. Superbuy를 붙이는 순간 1688/타오바오 전체가 소싱 풀로 들어옴(Phase B). Qoo10은 엑셀 인입 경로(P5-1)의 실전 검증 채널로 Phase B에 배치. 환율 테이블에 CNY/SGD/JPY 추가, `USD_KRW_RATE` → `fx_rates` 테이블로 승격.
+
+### 9.4 신규 env
+
+```
+CJ_API_EMAIL= / CJ_API_KEY=
+SUPERBUY_APP_KEY= / SUPERBUY_APP_SECRET=
+SHOPEE_PARTNER_ID= / SHOPEE_PARTNER_KEY= / SHOPEE_SHOP_ID=
+LAZADA_APP_KEY= / LAZADA_APP_SECRET=
+QOO10_API_KEY= / QOO10_SELLER_ID=
+```
+
+## 10. 결정 필요사항 (남은 것)
 
 | # | 질문 | 기본안 |
 |---|---|---|
-| 1 | 1호 공급처는 어디인가? (커넥터 구현 대상 확정 필요) | 오픈 API 제공 공급처 1곳으로 시작 |
-| 2 | 셀러 마켓 1호는 어디이며 주문 엑셀 실물 샘플 제공 가능한가? | 샘플 수령 후 헤더 매핑 프리셋 제작 |
-| 3 | AI 리뉴얼 언어: EN 단일 vs EN+JA 동시 생성? | EN 단일, locale[] 확장 여지만 |
-| 4 | loyadbeta와 lexistyle을 장기적으로 한 리포로 합칠 것인가? | 당분간 분리 + HQ API 연동(D2) |
-| 5 | Cafe24 발주/주문 쓰기용 OAuth 토큰 발급 상태? (`CAFE24_ACCESS_TOKEN`) | 미발급 시 M5까지 모의 모드 |
+| 1 | ~~1호 공급처~~ → **CJDropshipping 확정** (P0) | — |
+| 2 | ~~1호 판매처~~ → **Shopee 확정** (P0). Shopee 셀러 계정·open platform 앱 등록은 사장님 명의 필요 — 계정 생성 후 partner_id/key 전달 요망 | 수령 전까지 모의 모드 |
+| 3 | AI 리뉴얼 언어: Shopee(EN/현지어)·Qoo10(JA) — EN+JA 2개 동시 생성? | EN 우선, JA는 Qoo10 착수 시 |
+| 4 | loyadbeta와 lexistyle 장기 통합 여부 | 당분간 분리 + HQ API 연동(D2) |
+| 5 | Cafe24 발주/주문 쓰기용 OAuth 토큰 발급 상태? | 미발급 시 M5까지 모의 모드 |
+| 6 | CJ/Superbuy 계정 개설 및 API 키 발급 (사장님 액션 필요) | 발급 전 커넥터는 목업 픽스처로 개발 |
