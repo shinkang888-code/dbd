@@ -194,4 +194,39 @@ marketing_assets
 | OpenCut | MIT | — | 스킵 |
 | kekemind | Apache 2.0 | 낮음(리포) / **모델 별도확인** | HF 모델카드 라이선스 검증 |
 
-*본 문서는 계획서입니다. 구현은 착수 승인 후 진행합니다.*
+---
+
+## 8. 구현 현황 (M8–M11 완료)
+
+권장안(Remotion / FastAPI 사이드카+결정적 폴백 / 오픈에셋)으로 전 단계 구현·검증 완료.
+키·모델 없이도 동작(결정적 폴백), `EMBED_SERVICE_URL`·LLM 스왑인 시 시맨틱 품질 상승.
+
+| 모듈 | 위치 | 상태 |
+|---|---|---|
+| M8 임베딩·분류·검색·클러스터·요약 | `src/lib/marketing/embed.ts`, `categories.ts` | ✅ |
+| M8 FastAPI 임베딩 사이드카 | `services/embedding/` | ✅ |
+| M9 ICE+근거태그 | `src/lib/marketing/ice.ts` | ✅ |
+| M9 Anti-Slop 3-pass | `src/lib/marketing/antislop.ts` | ✅ |
+| M9 Hook Lab 6유형 | `src/lib/marketing/hooks.ts` | ✅ |
+| M9 LMF 카피 엔진 | `src/lib/marketing/lmf.ts` | ✅ |
+| M9 Compounding 원장(learning·campaign_log) | `src/lib/hq/store.ts` + `service.ts` | ✅ |
+| M10 카드뉴스 HTML | `src/lib/marketing/cardnews.ts` | ✅ |
+| M10 릴스 9:16 애니 HTML | `src/lib/marketing/reels.ts` | ✅ |
+| M10 스토리보드(검증·정규화·폴백) | `src/lib/marketing/storyboard.ts` | ✅ |
+| M10 Remotion 컴포지션 | `services/remotion/` | ✅ |
+| M11 오케스트레이션·서비스 | `src/lib/marketing/service.ts` | ✅ |
+| M11 API | `src/app/api/hq/marketing/{generate,[id],search}` | ✅ |
+| M11 loyadbeta 마케팅 탭 | `loyadbeta CommercePanel.tsx` | ✅ |
+
+**검증**: E2E 스모크 통과 — 생성(훅10·카피6·카드뉴스7·숏폼) → ICE 채점 → 승인/발행 →
+campaign_log·learning write-back → 성과 CTR 3.5% → winner 승격, 반려 자산 발행 차단,
+시맨틱 검색·분류(뷰티/스킨케어 0.30)·요약 정상.
+
+### 남은 후속(운영자 결정·프로덕션화)
+- `EMBED_SERVICE_URL` 사이드카 배포 → 시맨틱 품질 상승(현재 결정적 폴백)
+- LLM 스왑인(카피·스토리보드 생성 단계) — 스키마·검증 로직은 유지
+- 바이너리 렌더 워커(Remotion) 상시화 + `marketing_assets.renderUrl` 기록
+- 라이선스 BGM 트랙·오픈 한글 폰트 확보(상용 배포 전)
+- kekemind 모델 HF 라이선스 확인 / 규모 확대 시 Neon pgvector 이관
+
+*계획 → 구현 완료. 위 후속은 외부 키·에셋·배포 결정에 의존.*
