@@ -24,8 +24,8 @@ export async function GET(req: Request) {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
-    path: "/api/cafe24/oauth",
-    maxAge: 600,
+    path: "/", // 콜백(/api/cafe24/oauth/callback)에 확실히 전달되도록 루트 스코프
+    maxAge: 1800,
   });
   return res;
 }

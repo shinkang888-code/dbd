@@ -28,11 +28,12 @@ export function Cafe24Panel() {
 
   useEffect(() => {
     void load();
-    // OAuth 콜백 복귀 시 알림
-    const p = new URLSearchParams(window.location.search).get("cafe24");
+    // OAuth 콜백 복귀 시 알림 (원인 세분화)
+    const sp = new URLSearchParams(window.location.search);
+    const p = sp.get("cafe24");
+    const msg = sp.get("msg") ?? "";
     if (p === "connected") setSyncMsg("✓ 카페24 연결 완료 — 전 상품이 프론트에 노출됩니다");
-    else if (p === "state-mismatch") setSyncMsg("✖ 연결 실패: state 불일치, 다시 시도하세요");
-    else if (p === "error") setSyncMsg(`✖ 연결 실패: ${new URLSearchParams(window.location.search).get("msg") ?? ""}`);
+    else if (p) setSyncMsg(`✖ 연결 실패 [${p}] ${msg}`);
   }, []);
 
   async function sync() {
