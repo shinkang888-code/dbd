@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 // Cafe24 관리자 대시보드(새 탭). 배포마다 NEXT_PUBLIC_CAFE24_ADMIN_URL 로 덮어쓸 수 있음.
 const CAFE24_ADMIN_URL =
   process.env.NEXT_PUBLIC_CAFE24_ADMIN_URL ??
-  "https://partnersc88.cafe24.com/disp/admin/shop1/main/dashboard";
+  "https://eclogin.cafe24.com/Shop/";
 
 type Tab = { href: string; label: string; external?: boolean };
 
