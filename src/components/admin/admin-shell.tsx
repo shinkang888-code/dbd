@@ -4,12 +4,20 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const TABS = [
+// Cafe24 관리자 대시보드(새 탭). 배포마다 NEXT_PUBLIC_CAFE24_ADMIN_URL 로 덮어쓸 수 있음.
+const CAFE24_ADMIN_URL =
+  process.env.NEXT_PUBLIC_CAFE24_ADMIN_URL ??
+  "https://partnersc88.cafe24.com/disp/admin/shop1/main/dashboard";
+
+type Tab = { href: string; label: string; external?: boolean };
+
+const TABS: Tab[] = [
   { href: "/admin", label: "대시보드" },
   { href: "/admin/products", label: "상품" },
   { href: "/admin/orders", label: "주문" },
   { href: "/admin/banners", label: "배너" },
-  { href: "/admin/cafe24", label: "Cafe24" },
+  { href: CAFE24_ADMIN_URL, label: "Cafe24 ↗", external: true },
+  { href: "/admin/cafe24", label: "Cafe24 API" },
   { href: "/admin/sourcing", label: "역직구" },
 ];
 
@@ -24,15 +32,19 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </div>
         <nav className="flex gap-1 rounded-full border border-line bg-fog p-1">
           {TABS.map((t) => {
-            const active = path === t.href;
+            const cls = `rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-colors ${
+              path === t.href ? "bg-ink text-white" : "text-dim hover:text-ink"
+            }`;
+            // Cafe24 관리자: 새 탭으로 외부 대시보드 열기
+            if (t.external) {
+              return (
+                <a key={t.href} href={t.href} target="_blank" rel="noopener noreferrer" className={cls}>
+                  {t.label}
+                </a>
+              );
+            }
             return (
-              <Link
-                key={t.href}
-                href={t.href}
-                className={`rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-colors ${
-                  active ? "bg-ink text-white" : "text-dim hover:text-ink"
-                }`}
-              >
+              <Link key={t.href} href={t.href} className={cls}>
                 {t.label}
               </Link>
             );
