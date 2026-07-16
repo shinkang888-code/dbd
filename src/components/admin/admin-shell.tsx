@@ -3,6 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { LexiMark } from "@/components/lexi-mark";
 
 // Cafe24 관리자 대시보드(새 탭). 배포마다 NEXT_PUBLIC_CAFE24_ADMIN_URL 로 덮어쓸 수 있음.
 const CAFE24_ADMIN_URL =
@@ -27,7 +28,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     <div className="mx-auto max-w-5xl px-4 py-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-[30px] font-semibold">LEXI Admin</h1>
+          <h1 className="flex items-center gap-2.5 font-display text-[30px] font-semibold">
+            <LexiMark size={34} className="text-dim" />
+            LEXI Admin
+          </h1>
           <p className="mt-1 text-[13px] text-dim">쇼핑몰 백엔드 · Neon · Google Auth</p>
         </div>
         <nav className="flex gap-1 rounded-full border border-line bg-fog p-1">

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ShieldCheck, Plane, RotateCcw } from "lucide-react";
+import { LexiMark } from "@/components/lexi-mark";
 
 const TRUST = [
   { icon: ShieldCheck, title: "정품 직소싱", desc: "브랜드 본사와 직계약, 100% 정품 보증" },
@@ -23,7 +24,8 @@ export function SiteFooter() {
       </div>
       <div className="border-t border-line">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-6 text-[12px] text-dim">
-          <p className="font-display text-[18px] font-semibold text-ink">
+          <p className="flex items-center gap-2 font-display text-[18px] font-semibold text-ink">
+            <LexiMark size={26} className="text-dim" gap="#f5f5f3" />
             LEXI<span className="text-coral">.</span>
           </p>
           <nav className="flex gap-4">
@@ -44,7 +46,8 @@ export function SiteFooter() {
             <span>법인등록번호 220151-0022471</span>
           </p>
           <p className="mt-1">제주특별자치도 제주시 구남로7길 33, 7층 703-2호(이도이동, 하늘그린)</p>
-          <p className="mt-2 text-[10.5px] text-dim/80">
+          <p className="mt-2 flex items-center gap-1.5 text-[10.5px] text-dim/80">
+            <LexiMark size={14} className="text-dim/70" gap="#f5f5f3" />
             LEXI는 파트너스 사회적협동조합이 운영하는 역직구 커머스 브랜드입니다.
           </p>
         </div>

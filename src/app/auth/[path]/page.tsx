@@ -2,6 +2,7 @@
 import { AuthView } from "@neondatabase/auth-ui";
 import { authViewPaths } from "@neondatabase/auth-ui/server";
 import { authConfigured } from "@/lib/auth/server";
+import { LexiMark } from "@/components/lexi-mark";
 
 export const dynamicParams = false;
 
@@ -17,9 +18,12 @@ export default async function AuthPage({ params }: { params: Promise<{ path: str
 
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-md flex-col items-center justify-center px-4 py-10">
-      <p className="mb-6 font-display text-[28px] font-semibold tracking-tight">
-        LEXI<span className="text-coral">.</span>
-      </p>
+      <div className="mb-6 flex flex-col items-center gap-2">
+        <LexiMark size={52} className="text-dim" />
+        <p className="font-display text-[28px] font-semibold tracking-tight">
+          LEXI<span className="text-coral">.</span>
+        </p>
+      </div>
 
       {/* Neon Auth 활성화 전에는 자체 Google OAuth + 데모 로그인 패널 */}
       {authConfigured ? (
