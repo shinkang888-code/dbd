@@ -3,11 +3,12 @@ import { NextResponse } from "next/server";
 import { cafe24StatusPayload, cafe24Mode } from "@/lib/cafe24/config";
 import { listCafe24Products } from "@/lib/cafe24/catalog";
 import { cafe24Fetch } from "@/lib/cafe24/client";
+import { cafe24Connected } from "@/lib/cafe24/oauth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const base = cafe24StatusPayload();
+  const base = { ...cafe24StatusPayload(), connected: await cafe24Connected() };
   if (cafe24Mode() === "off") {
     return NextResponse.json({ ...base, ping: null, productSample: 0 });
   }

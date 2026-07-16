@@ -5,6 +5,7 @@ import {
   cafe24Configured,
   cafe24ShopNo,
 } from "./config";
+import { getValidAccessToken } from "./oauth";
 
 export class Cafe24ApiError extends Error {
   status: number;
@@ -25,30 +26,36 @@ type RequestOpts = {
   scope?: "front" | "admin";
 };
 
-function frontAuthHeader() {
-  const clientId = process.env.CAFE24_FRONT_CLIENT_ID!.trim();
-  const apiKey = process.env.CAFE24_FRONT_API_KEY?.trim();
-  const token = process.env.CAFE24_ACCESS_TOKEN?.trim();
-  if (apiKey) {
-    const basic = Buffer.from(`${clientId}:${apiKey}`).toString("base64");
+/**
+ * 인증 헤더 해석 — 우선순위:
+ *  1) OAuth 저장 토큰(자동 refresh) — 원클릭 연결 방식(권장)
+ *  2) CAFE24_ACCESS_TOKEN (정적 env 토큰)
+ *  3) CAFE24_FRONT_API_KEY (Basic) — front 스코프 한정 레거시
+ */
+async function resolveAuthHeaders(scope: "front" | "admin"): Promise<Record<string, string>> {
+  const clientId = process.env.CAFE24_FRONT_CLIENT_ID?.trim();
+  const oauthToken = await getValidAccessToken();
+  if (oauthToken) {
     return {
-      Authorization: `Basic ${basic}`,
-      "X-Cafe24-Client-Id": clientId,
+      Authorization: `Bearer ${oauthToken}`,
+      ...(clientId ? { "X-Cafe24-Client-Id": clientId } : {}),
     };
   }
-  if (token) {
+  const envToken = process.env.CAFE24_ACCESS_TOKEN?.trim();
+  if (envToken) {
     return {
-      Authorization: `Bearer ${token}`,
-      "X-Cafe24-Client-Id": clientId,
+      Authorization: `Bearer ${envToken}`,
+      ...(clientId ? { "X-Cafe24-Client-Id": clientId } : {}),
     };
   }
-  throw new Error("Cafe24 Front 자격증명 없음");
-}
-
-function adminAuthHeader() {
-  const token = process.env.CAFE24_ACCESS_TOKEN?.trim();
-  if (!token) throw new Error("CAFE24_ACCESS_TOKEN 필요 (Admin API)");
-  return { Authorization: `Bearer ${token}` };
+  if (scope === "front") {
+    const apiKey = process.env.CAFE24_FRONT_API_KEY?.trim();
+    if (apiKey && clientId) {
+      const basic = Buffer.from(`${clientId}:${apiKey}`).toString("base64");
+      return { Authorization: `Basic ${basic}`, "X-Cafe24-Client-Id": clientId };
+    }
+  }
+  throw new Error("Cafe24 미연결 — 콘솔에서 [카페24 연결]로 인증하세요");
 }
 
 export async function cafe24Fetch<T>(opts: RequestOpts): Promise<T> {
@@ -64,7 +71,7 @@ export async function cafe24Fetch<T>(opts: RequestOpts): Promise<T> {
     if (v !== undefined && v !== "") url.searchParams.set(k, String(v));
   }
 
-  const auth = scope === "admin" ? adminAuthHeader() : frontAuthHeader();
+  const auth = await resolveAuthHeaders(scope);
   const res = await fetch(url.toString(), {
     method: opts.method ?? "GET",
     headers: {

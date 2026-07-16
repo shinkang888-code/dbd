@@ -7,6 +7,8 @@ type Status = {
   mode: string;
   configured: boolean;
   adminConfigured: boolean;
+  oauthConfigured?: boolean;
+  connected?: boolean;
   mallId: string | null;
   ping?: string;
   productCount?: number;
@@ -26,6 +28,11 @@ export function Cafe24Panel() {
 
   useEffect(() => {
     void load();
+    // OAuth 콜백 복귀 시 알림
+    const p = new URLSearchParams(window.location.search).get("cafe24");
+    if (p === "connected") setSyncMsg("✓ 카페24 연결 완료 — 전 상품이 프론트에 노출됩니다");
+    else if (p === "state-mismatch") setSyncMsg("✖ 연결 실패: state 불일치, 다시 시도하세요");
+    else if (p === "error") setSyncMsg(`✖ 연결 실패: ${new URLSearchParams(window.location.search).get("msg") ?? ""}`);
   }, []);
 
   async function sync() {
@@ -48,14 +55,36 @@ export function Cafe24Panel() {
         <p className="font-bold">Cafe24 Headless</p>
         <ul className="mt-2 space-y-1 text-dim">
           <li>mode: {status.mode}</li>
-          <li>configured: {String(status.configured)}</li>
-          <li>admin: {String(status.adminConfigured)}</li>
+          <li>connected: <span className={status.connected ? "font-bold text-sage" : "text-coral"}>{status.connected ? "✓ 연결됨" : "미연결"}</span></li>
           <li>mall: {status.mallId || "—"}</li>
           <li>ping: {status.ping ?? "—"}</li>
           <li>products: {status.productCount ?? "—"}</li>
         </ul>
         {status.note && <p className="mt-2 text-[12px]">{status.note}</p>}
         {status.error && <p className="mt-2 text-coral">{status.error}</p>}
+      </div>
+
+      {/* OAuth 원클릭 연결 */}
+      <div className="rounded-2xl border border-line p-4">
+        <p className="text-[13px] font-bold">카페24 계정 연결</p>
+        <p className="mt-1 text-[12px] text-dim">
+          {status.connected
+            ? "연결됨 — 토큰은 2시간마다 자동 갱신됩니다. 계정을 바꾸려면 다시 연결하세요."
+            : "카페24 로그인·동의 한 번으로 전 상품을 프론트에 상시 노출합니다."}
+        </p>
+        <a
+          href="/api/cafe24/oauth/start"
+          className={`mt-3 inline-block rounded-xl px-4 py-3 text-[13px] font-bold ${
+            status.oauthConfigured ? "bg-ink text-white" : "pointer-events-none bg-fog text-dim"
+          }`}
+        >
+          {status.connected ? "카페24 다시 연결" : "카페24 연결 →"}
+        </a>
+        {!status.oauthConfigured && (
+          <p className="mt-2 text-[12px] text-coral">
+            CAFE24_MALL_ID · CAFE24_FRONT_CLIENT_ID · CAFE24_CLIENT_SECRET 설정 필요
+          </p>
+        )}
       </div>
 
       {status.productSample && status.productSample.length > 0 && (

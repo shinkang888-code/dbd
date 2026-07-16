@@ -7,9 +7,33 @@ export function cafe24Configured() {
   return Boolean(
     process.env.CAFE24_MALL_ID?.trim() &&
       process.env.CAFE24_FRONT_CLIENT_ID?.trim() &&
-      (process.env.CAFE24_FRONT_API_KEY?.trim() || process.env.CAFE24_ACCESS_TOKEN?.trim()),
+      (process.env.CAFE24_FRONT_API_KEY?.trim() ||
+        process.env.CAFE24_ACCESS_TOKEN?.trim() ||
+        process.env.CAFE24_CLIENT_SECRET?.trim()), // OAuth 연결 가능
   );
 }
+
+/** OAuth 원클릭 연결 가능 여부 (Client Secret 보유) */
+export function cafe24OAuthConfigured() {
+  return Boolean(
+    process.env.CAFE24_MALL_ID?.trim() &&
+      process.env.CAFE24_FRONT_CLIENT_ID?.trim() &&
+      process.env.CAFE24_CLIENT_SECRET?.trim(),
+  );
+}
+
+export function cafe24ClientSecret() {
+  return process.env.CAFE24_CLIENT_SECRET!.trim();
+}
+
+/** 조회 권한 스코프 (상품·카테고리·진열; 주문까지 필요 시 mall.read_order 추가) */
+export function cafe24Scopes(): string[] {
+  const s = process.env.CAFE24_SCOPES?.trim();
+  if (s) return s.split(",").map((x) => x.trim()).filter(Boolean);
+  return ["mall.read_product", "mall.read_category", "mall.read_collection"];
+}
+
+export const CAFE24_REDIRECT_PATH = "/api/cafe24/oauth/callback";
 
 export function cafe24AdminConfigured() {
   return Boolean(
@@ -52,12 +76,13 @@ export function cafe24StatusPayload() {
     mode: cafe24Mode(),
     configured: cafe24Configured(),
     adminConfigured: cafe24AdminConfigured(),
+    oauthConfigured: cafe24OAuthConfigured(),
     mallId: process.env.CAFE24_MALL_ID?.trim() || null,
     shopNo: cafe24ShopNo(),
     apiVersion: cafe24ApiVersion(),
     note:
       cafe24Configured()
-        ? "Cafe24 Front API active — catalog prefers Cafe24"
-        : "Set CAFE24_MALL_ID + CAFE24_FRONT_CLIENT_ID + CAFE24_FRONT_API_KEY (or ACCESS_TOKEN)",
+        ? "Cafe24 API active — catalog prefers Cafe24"
+        : "Set CAFE24_MALL_ID + CAFE24_FRONT_CLIENT_ID + CAFE24_CLIENT_SECRET",
   };
 }
