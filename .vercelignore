@@ -1,0 +1,3 @@
+# Python FastAPI embedding service — kept in repo, excluded from Vercel deploy
+# (its deps exceed the 500MB serverless function limit)
+services/embedding
