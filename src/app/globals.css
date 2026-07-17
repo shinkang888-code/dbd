@@ -65,3 +65,24 @@ body {
 .animate-fade-in {
   animation: fade-in 0.2s ease-out;
 }
+
+/* Studio form primitives */
+.control {
+  @apply w-full rounded-xl border border-line bg-paper px-3 py-2.5 text-[13px] text-ink outline-none transition-colors focus:border-ink;
+}
+
+.label {
+  @apply mt-4 block text-[11px] font-bold text-dim;
+}
+
+.label .control {
+  @apply mt-1;
+}
+
+.button-primary {
+  @apply rounded-xl bg-ink px-4 py-2.5 text-[12px] font-bold text-white transition-opacity hover:opacity-85;
+}
+
+.button-secondary {
+  @apply rounded-xl border border-line bg-paper px-4 py-2.5 text-[12px] font-bold text-ink hover:bg-fog;
+}

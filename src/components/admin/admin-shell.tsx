@@ -14,11 +14,9 @@ type Tab = { href: string; label: string; external?: boolean };
 
 const TABS: Tab[] = [
   { href: "/admin", label: "대시보드" },
-  { href: "/admin/products", label: "상품" },
-  { href: "/admin/orders", label: "주문" },
-  { href: "/admin/banners", label: "배너" },
-  { href: CAFE24_ADMIN_URL, label: "Cafe24 ↗", external: true },
-  { href: "/admin/cafe24", label: "Cafe24 API" },
+  { href: "/studio", label: "LEXI Studio" },
+  { href: CAFE24_ADMIN_URL, label: "상품·주문·배송 ↗", external: true },
+  { href: "/studio/cafe24", label: "Cafe24 연결" },
   { href: "/admin/sourcing", label: "역직구" },
 ];
 
@@ -32,7 +30,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             <LexiMark size={34} className="text-dim" />
             LEXI Admin
           </h1>
-          <p className="mt-1 text-[13px] text-dim">쇼핑몰 백엔드 · Neon · Google Auth</p>
+          <p className="mt-1 text-[13px] text-dim">
+            Legacy HQ · 쇼핑몰 원장 운영은 Cafe24, 디자인·콘텐츠는 LEXI Studio
+          </p>
         </div>
         <nav className="flex gap-1 rounded-full border border-line bg-fog p-1">
           {TABS.map((t) => {

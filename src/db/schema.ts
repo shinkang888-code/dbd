@@ -391,3 +391,133 @@ export const hqState = pgTable("hq_state", {
   value: jsonb("value").notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+/* ============================================================
+ * LEXI Studio — Cafe24 Design CMS + Creator
+ * ============================================================ */
+
+export const designThemes = pgTable("design_themes", {
+  id: id(),
+  name: text("name").notNull(),
+  tokens: jsonb("tokens").notNull(),
+  status: text("status").notNull().default("draft"), // draft|published|archived
+  version: integer("version").notNull().default(1),
+  createdBy: text("created_by"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const designSections = pgTable("design_sections", {
+  id: id(),
+  slot: text("slot").notNull(), // hero|categories|ranking|timedeal|look|brand|ugc
+  title: text("title").notNull(),
+  payload: jsonb("payload").notNull(),
+  sort: integer("sort").notNull().default(0),
+  status: text("status").notNull().default("draft"), // draft|published|archived
+  version: integer("version").notNull().default(1),
+  startsAt: timestamp("starts_at", { withTimezone: true }),
+  endsAt: timestamp("ends_at", { withTimezone: true }),
+  publishedAt: timestamp("published_at", { withTimezone: true }),
+  createdBy: text("created_by"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const contentDocuments = pgTable("content_documents", {
+  id: id(),
+  kind: text("kind").notNull(), // pdp|editorial|campaign|home_section
+  title: text("title").notNull(),
+  locale: text("locale").notNull().default("ko"),
+  cafe24MallId: text("cafe24_mall_id"),
+  cafe24ShopNo: integer("cafe24_shop_no"),
+  cafe24ProductNo: integer("cafe24_product_no"),
+  currentVersion: integer("current_version").notNull().default(1),
+  status: text("status").notNull().default("draft"),
+  body: jsonb("body").notNull(),
+  renderedHtml: text("rendered_html"),
+  createdBy: text("created_by"),
+  reviewedBy: text("reviewed_by"),
+  reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+  publishedAt: timestamp("published_at", { withTimezone: true }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const contentVersions = pgTable("content_versions", {
+  id: id(),
+  documentId: bigint("document_id", { mode: "number" }).notNull(),
+  version: integer("version").notNull(),
+  body: jsonb("body").notNull(),
+  renderedHtml: text("rendered_html"),
+  status: text("status").notNull(),
+  note: text("note"),
+  createdBy: text("created_by"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const mediaAssets = pgTable("media_assets", {
+  id: id(),
+  kind: text("kind").notNull(), // image|video|html|document
+  name: text("name").notNull(),
+  url: text("url").notNull(),
+  mimeType: text("mime_type"),
+  bytes: bigint("bytes", { mode: "number" }),
+  width: integer("width"),
+  height: integer("height"),
+  durationMs: integer("duration_ms"),
+  alt: text("alt"),
+  tags: text("tags").array(),
+  source: text("source").notNull().default("manual"),
+  metadata: jsonb("metadata"),
+  createdBy: text("created_by"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const generationJobs = pgTable("generation_jobs", {
+  id: id(),
+  kind: text("kind").notNull(), // pdp|image|cardnews|storyboard|video|copy
+  status: text("status").notNull().default("queued"),
+  documentId: bigint("document_id", { mode: "number" }),
+  cafe24ProductNo: integer("cafe24_product_no"),
+  input: jsonb("input").notNull(),
+  output: jsonb("output"),
+  provider: text("provider").notNull().default("deterministic"),
+  model: text("model"),
+  costUsd: numeric("cost_usd", { precision: 10, scale: 4 }),
+  error: text("error"),
+  requestedBy: text("requested_by"),
+  startedAt: timestamp("started_at", { withTimezone: true }),
+  completedAt: timestamp("completed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const publishEvents = pgTable("publish_events", {
+  id: id(),
+  documentId: bigint("document_id", { mode: "number" }).notNull(),
+  version: integer("version").notNull(),
+  target: text("target").notNull(), // cafe24_product_description|cafe24_skin|...
+  status: text("status").notNull().default("queued"),
+  remoteRef: text("remote_ref"),
+  requestPayload: jsonb("request_payload"),
+  responsePayload: jsonb("response_payload"),
+  previousSnapshot: jsonb("previous_snapshot"),
+  metrics: jsonb("metrics"),
+  error: text("error"),
+  publishedBy: text("published_by"),
+  publishedAt: timestamp("published_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const decisionQueue = pgTable("decision_queue", {
+  id: id(),
+  code: text("code").notNull().unique(),
+  priority: text("priority").notNull().default("medium"),
+  question: text("question").notNull(),
+  defaultDecision: text("default_decision").notNull(),
+  finalDecision: text("final_decision"),
+  impact: text("impact"),
+  status: text("status").notNull().default("open"),
+  resolvedBy: text("resolved_by"),
+  resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
