@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { CAFE24_REDIRECT_PATH } from "@/lib/cafe24/config";
+import { CAFE24_REDIRECT_PATH, cafe24Scopes } from "@/lib/cafe24/config";
 import { exchangeCode } from "@/lib/cafe24/oauth";
 
 export const dynamic = "force-dynamic";
@@ -18,9 +18,15 @@ export async function GET(req: Request) {
   // 1) 카페24가 에러를 돌려준 경우(권한 거부·잘못된 요청 등) — 이게 진짜 원인일 때가 많음
   const cafeErr = url.searchParams.get("error");
   if (cafeErr) {
+    const desc = url.searchParams.get("error_description") ?? "";
+    // invalid_scope: 요청 scope가 개발자센터 앱 등록 권한과 불일치 — 운영자가 바로 조치하도록 안내
+    const hint =
+      cafeErr === "invalid_scope"
+        ? ` | 요청 scope=[${cafe24Scopes().join(",")}] — 개발자센터 앱 권한과 일치시키거나 CAFE24_SCOPES 환경변수로 맞추세요`
+        : "";
     return done({
       cafe24: "cafe24-error",
-      msg: `${cafeErr}: ${url.searchParams.get("error_description") ?? ""}`.slice(0, 300),
+      msg: `${cafeErr}: ${desc}${hint}`.slice(0, 400),
     });
   }
 

@@ -26,11 +26,17 @@ export function cafe24ClientSecret() {
   return process.env.CAFE24_CLIENT_SECRET!.trim();
 }
 
-/** 조회 권한 스코프 (상품·카테고리·진열; 주문까지 필요 시 mall.read_order 추가) */
+/**
+ * 조회 권한 스코프.
+ * 기본값은 카탈로그(/products, /products/{no})에 실제로 필요한 최소 권한인
+ * mall.read_product 하나만 요청한다. 카테고리·진열·주문까지 다루려면
+ * CAFE24_SCOPES에 mall.read_category 등을 콤마로 추가한다.
+ * (요청 scope가 개발자센터 앱에 등록된 권한과 하나라도 다르면 invalid_scope 발생)
+ */
 export function cafe24Scopes(): string[] {
   const s = process.env.CAFE24_SCOPES?.trim();
   if (s) return s.split(",").map((x) => x.trim()).filter(Boolean);
-  return ["mall.read_product", "mall.read_category", "mall.read_collection"];
+  return ["mall.read_product"];
 }
 
 export const CAFE24_REDIRECT_PATH = "/api/cafe24/oauth/callback";
