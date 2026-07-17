@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Blocks,
+  Bookmark,
   CheckCircle2,
   FileText,
   Film,
@@ -30,6 +31,7 @@ const NAV = [
   { href: "/studio/creator/pdp", label: "PDP 문서", icon: FileText },
   { href: "/studio/creator/review", label: "승인 큐", icon: CheckCircle2 },
   { href: "/studio/creator/publish", label: "게시·롤백", icon: Send },
+  { href: "/studio/mobbin", label: "Mobbin 정리", icon: Bookmark },
   { href: "/studio/cafe24", label: "Cafe24 연결", icon: Blocks },
   { href: "/studio/decisions", label: "결정 대기열", icon: HelpCircle },
 ] as const;

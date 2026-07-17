@@ -521,3 +521,56 @@ export const decisionQueue = pgTable("decision_queue", {
   resolvedAt: timestamp("resolved_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+/* ============================================================
+ * Mobbin 컬렉션 자동 정리
+ * 저장(Saved)한 앱을 네이티브 카테고리별 컬렉션으로 묶는다.
+ * 원칙: 유료 이미지/콘텐츠는 저장하지 않고 포인터(URL)·메타데이터만 보관한다.
+ * ============================================================ */
+
+/** mobbin에서 저장한 앱 — 포인터 + 메타데이터만 (이미지 영속화 없음) */
+export const mobbinApps = pgTable("mobbin_apps", {
+  id: id(),
+  /** mobbin URL의 앱 식별 경로(슬러그/uuid) — 멱등 upsert 키 */
+  appKey: text("app_key").notNull().unique(),
+  name: text("name").notNull(),
+  /** Copy link 으로 얻은 앱 URL (포인터) */
+  url: text("url").notNull(),
+  platform: text("platform").array(), // ["Web","Site"] | ["iOS"] ...
+  screenCount: integer("screen_count").notNull().default(0),
+  /** mobbin이 호스팅하는 아이콘 URL 참조만 (다운로드/저장 안 함) */
+  iconUrl: text("icon_url"),
+  /** mobbin 네이티브 카테고리 (원본) */
+  nativeCategories: text("native_categories").array(),
+  /** 에디터 수동 재분류 — 있으면 네이티브보다 우선 */
+  categoryOverride: text("category_override").array(),
+  savedAt: timestamp("saved_at", { withTimezone: true }),
+  syncedAt: timestamp("synced_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** 카테고리 사전 — mobbin 네이티브를 시드하고 이름변경/병합/커스텀을 관리 */
+export const mobbinCategories = pgTable("mobbin_categories", {
+  id: id(),
+  /** 정규 키 (원본 카테고리 이름) */
+  name: text("name").notNull().unique(),
+  /** 표시 이름 (이름변경 시) */
+  label: text("label"),
+  /** 병합 대상 name — 있으면 이 카테고리 대신 대상으로 접힌다 */
+  mergedInto: text("merged_into"),
+  source: text("source").notNull().default("mobbin"), // mobbin|custom
+  sort: integer("sort").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Apply 실행 감사 로그 — 어떤 계획을 언제 반영했는지 */
+export const mobbinApplyRuns = pgTable("mobbin_apply_runs", {
+  id: id(),
+  plan: jsonb("plan").notNull(), // { [collection]: appKey[] }
+  collectionCount: integer("collection_count").notNull().default(0),
+  assignmentCount: integer("assignment_count").notNull().default(0),
+  status: text("status").notNull().default("planned"), // planned|applied|failed
+  actor: text("actor"),
+  note: text("note"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
