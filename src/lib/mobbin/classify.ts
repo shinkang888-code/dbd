@@ -26,7 +26,7 @@ export function effectiveCategories(app: MobbinApp, categories: MobbinCategory[]
   return Array.from(new Set(labels.length ? labels : [UNCATEGORIZED]));
 }
 
-/** 저장 앱 목록 → 카테고리 컬렉션 계획 (앱 수 내림차순) */
+/** 저장 앱 목록 → 카테고리별 앱 인덱스 (앱 수 내림차순) */
 export function buildPlan(apps: MobbinApp[], categories: MobbinCategory[]): PlanCollection[] {
   const map = new Map<string, PlanCollection["apps"]>();
   for (const app of apps) {
@@ -37,6 +37,8 @@ export function buildPlan(apps: MobbinApp[], categories: MobbinCategory[]): Plan
         name: app.name,
         url: app.url,
         iconUrl: app.iconUrl ?? null,
+        platform: app.platform ?? null,
+        screenCount: app.screenCount ?? 0,
       });
     }
   }

@@ -6,9 +6,9 @@ import { bad, studioActor, unauthorized } from "@/lib/studio/http";
 export const dynamic = "force-dynamic";
 
 /**
- * 현재 계획을 스냅샷으로 기록(status=planned).
- * 실제 mobbin 반영(컬렉션 생성·앱 배치)은 로컬 Playwright 어댑터가
- * 이 계획을 읽어 직렬·지연으로 수행한다. (이미지 다운로드 없음)
+ * 현재 카테고리 인덱스를 스냅샷으로 기록(status=indexed).
+ * 분류는 dbd가 소유하며 mobbin에 자동으로 쓰지 않는다 —
+ * mobbin 컬렉션(스크린 단위)은 사용자가 직접 큐레이션한다.
  */
 export async function POST() {
   const actor = await studioActor();
@@ -22,7 +22,7 @@ export async function POST() {
       plan: planMap,
       collectionCount: plan.length,
       assignmentCount,
-      status: "planned",
+      status: "indexed",
       actor,
     });
     return NextResponse.json({ run, plan });

@@ -1,100 +1,76 @@
 /**
- * Mobbin Apply 어댑터 — 대시보드 계획을 읽어 mobbin에 컬렉션을 만들고 앱을 배치한다.
- * 원칙: 이미지 다운로드 없음. 컬렉션 구조만 조작. 단일 세션 직렬·지연.
+ * Mobbin 큐레이션 헬퍼 — 기본적으로 mobbin에 아무것도 쓰지 않는다.
  *
- * 실행(계획 확인 + 컬렉션 생성):
+ * 설계(B안): 앱→카테고리 분류는 dbd 대시보드가 소유하고, mobbin 컬렉션은
+ * 사용자가 직접 고른 스크린만 담는 공간으로 남긴다. 따라서 대량 자동 배치는 하지 않는다.
+ *
+ * 기본 실행(읽기 전용) — 카테고리 인덱스를 콘솔로 확인:
  *   DASHBOARD_URL=https://dbd0.vercel.app MOBBIN_SYNC_TOKEN=xxx \
  *   npx tsx scripts/mobbin/apply.ts
- * 배치까지 시도(⚠️ 아래 RECON 확인 후):
- *   ... npx tsx scripts/mobbin/apply.ts --assign
+ *
+ * 명시적 큐레이션(원할 때만, 앱 1개 단위):
+ *   ... npx tsx scripts/mobbin/apply.ts --app <appKey> --collection "AI" --limit 10
  */
 import { chromium, type Page } from "playwright";
 
 const STATE = process.env.MOBBIN_STATE || ".mobbin-session.json";
 const DASHBOARD = (process.env.DASHBOARD_URL || "http://localhost:3000").replace(/\/$/, "");
 const TOKEN = process.env.MOBBIN_SYNC_TOKEN || process.env.HQ_API_TOKEN || "";
-const ASSIGN = process.argv.includes("--assign");
-/** 앱당 컬렉션에 담을 스크린 수 상한 (앱당 수백 개가 있으므로 반드시 제한) */
-const SCREEN_LIMIT = Number(process.env.SCREEN_LIMIT || 10);
+
+const arg = (name: string) => {
+  const i = process.argv.indexOf(`--${name}`);
+  return i >= 0 ? process.argv[i + 1] : undefined;
+};
+const APP = arg("app");
+const COLLECTION = arg("collection");
+const LIMIT = Number(arg("limit") || process.env.SCREEN_LIMIT || 10);
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const jitter = () => 1500 + Math.floor(Math.random() * 2500);
 
-type Plan = { collection: string; apps: { appKey: string; name: string; url: string }[] }[];
+type Plan = {
+  collection: string;
+  apps: { appKey: string; name: string; url: string; screenCount: number }[];
+}[];
 
 async function fetchPlan(): Promise<Plan> {
   const res = await fetch(`${DASHBOARD}/api/studio/mobbin`, {
     headers: { Authorization: `Bearer ${TOKEN}` },
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(`계획 조회 실패: ${data.error || res.status}`);
+  if (!res.ok) throw new Error(`인덱스 조회 실패: ${data.error || res.status}`);
   return data.plan as Plan;
 }
 
-/** 기존 컬렉션 이름 집합 */
-async function existingCollections(page: Page): Promise<Set<string>> {
-  await page.goto("https://mobbin.com/saved/mobile/screens", { waitUntil: "networkidle" });
-  const names = new Set<string>();
-  for (const el of await page.locator("main").getByRole("heading").all()) {
-    const t = (await el.textContent().catch(() => ""))?.trim();
-    if (t) names.add(t);
-  }
-  return names;
-}
-
-/** "Create collection" → 이름 입력 → 확정 (실측: 버튼 존재 확인됨) */
-async function createCollection(page: Page, name: string) {
-  await page.goto("https://mobbin.com/saved/mobile/screens", { waitUntil: "networkidle" });
-  await page.getByText("Create collection", { exact: true }).first().click();
-  await sleep(600);
-  const input = page.locator('input[type="text"], input:not([type])').first();
-  await input.fill(name);
-  // 확정 버튼(Create/Save/Done)은 라벨이 다를 수 있어 후보를 순서대로 시도.
-  for (const label of ["Create", "Save", "Done", "확인", "만들기"]) {
-    const btn = page.getByRole("button", { name: label });
-    if (await btn.count()) {
-      await btn.first().click().catch(() => {});
-      break;
-    }
-  }
-  await sleep(jitter());
-}
-
 /**
- * 앱의 스크린을 선택해 컬렉션에 담는다 — 실측 확정 경로:
- *   스크린 카드 hover → 좌상단 원형 체크박스 → (다중선택 가능)
+ * 스크린을 선택해 컬렉션에 담는다 — 실측 확정 경로:
+ *   스크린 카드 hover → 좌상단 원형 체크박스 → (다중선택)
  *   → 하단 일괄바 `Save` (aria-haspopup="dialog")
- *   → 다이얼로그: `All saved` / `Create collection` / 기존 컬렉션 목록에서 선택
+ *   → 다이얼로그: `All saved` / `Create collection` / 기존 컬렉션에서 선택
  */
-async function assignScreensToCollection(
-  page: Page,
-  appUrl: string,
-  collection: string,
-  limit: number,
-) {
+async function curateScreens(page: Page, appUrl: string, collection: string, limit: number) {
   await page.goto(appUrl, { waitUntil: "networkidle" });
   const cards = page.locator('a[href^="/screens/"]');
   const total = Math.min(await cards.count(), limit);
-  if (!total) return;
-
+  if (!total) {
+    console.log("  스크린을 찾지 못했습니다.");
+    return;
+  }
   for (let i = 0; i < total; i++) {
     const card = cards.nth(i);
     await card.scrollIntoViewIfNeeded().catch(() => {});
     await card.hover();
-    // hover 시 카드 좌상단에 나타나는 선택 체크박스
-    await card.locator("button").first().click().catch(() => {});
+    await card.locator("button").first().click().catch(() => {}); // hover 시 나타나는 선택 체크박스
     await sleep(250);
   }
-
-  // 하단 일괄바의 Save (다이얼로그 트리거)
   await page.locator('button[aria-haspopup="dialog"]:has-text("Save")').last().click();
   await sleep(700);
-  // 다이얼로그에서 대상 컬렉션 선택
   const target = page.getByRole("dialog").getByText(collection, { exact: true });
   if (await target.count()) {
     await target.first().click();
+    console.log(`  ✅ ${total}개 스크린 → "${collection}"`);
   } else {
-    console.warn(`  ! 다이얼로그에 "${collection}" 없음 — 컬렉션 생성 여부 확인 필요`);
+    console.warn(`  ! 다이얼로그에 "${collection}" 컬렉션이 없습니다. mobbin에서 먼저 만드세요.`);
     await page.keyboard.press("Escape");
   }
   await sleep(jitter());
@@ -103,42 +79,31 @@ async function assignScreensToCollection(
 async function main() {
   if (!TOKEN) throw new Error("MOBBIN_SYNC_TOKEN (또는 HQ_API_TOKEN) 환경변수가 필요합니다.");
   const plan = await fetchPlan();
-  console.log(`▶ 계획: 컬렉션 ${plan.length}개, 배치 ${plan.reduce((n, c) => n + c.apps.length, 0)}건`);
-  plan.forEach((c) => console.log(`  · ${c.collection} (${c.apps.length})`));
 
-  const browser = await chromium.launch({ headless: !ASSIGN });
+  // 기본: 읽기 전용 인덱스 출력
+  if (!APP || !COLLECTION) {
+    console.log(`카테고리별 앱 인덱스 (${plan.length} categories) — mobbin에 쓰지 않음\n`);
+    for (const col of plan) {
+      console.log(`■ ${col.collection} (${col.apps.length})`);
+      for (const a of col.apps) console.log(`    · ${a.name}  ${a.url}`);
+    }
+    console.log(`
+큐레이션이 필요하면 앱 1개씩 명시적으로 실행하세요:
+  npx tsx scripts/mobbin/apply.ts --app <appKey> --collection "<컬렉션명>" --limit 10
+`);
+    return;
+  }
+
+  // 명시적 큐레이션 모드
+  const app = plan.flatMap((c) => c.apps).find((a) => a.appKey === APP);
+  if (!app) throw new Error(`인덱스에 appKey "${APP}" 가 없습니다.`);
+  console.log(`▶ ${app.name} 스크린 ${LIMIT}개 → "${COLLECTION}"`);
+
+  const browser = await chromium.launch({ headless: false });
   const ctx = await browser.newContext({ storageState: STATE });
   const page = await ctx.newPage();
-
-  const existing = await existingCollections(page);
-  for (const col of plan) {
-    if (existing.has(col.collection)) {
-      console.log(`= 이미 존재: ${col.collection}`);
-      continue;
-    }
-    console.log(`+ 컬렉션 생성: ${col.collection}`);
-    await createCollection(page, col.collection);
-  }
-
-  if (!ASSIGN) {
-    console.log(`
-ℹ️  배치(assign)는 --assign 플래그로 실행합니다.
-    mobbin 컬렉션의 단위는 '앱'이 아니라 '스크린'이므로, 앱의 스크린을
-    카테고리 컬렉션에 담습니다. 앱당 스크린이 수백 개(예: Instagram 666)라
-    SCREEN_LIMIT 로 앱당 담을 개수를 제한하세요(기본 ${SCREEN_LIMIT}).
-`);
-  } else {
-    for (const col of plan) {
-      for (const app of col.apps) {
-        console.log(`→ ${app.name} 스크린 ${SCREEN_LIMIT}개 → "${col.collection}"`);
-        await assignScreensToCollection(page, app.url, col.collection, SCREEN_LIMIT);
-        await sleep(jitter());
-      }
-    }
-  }
-
+  await curateScreens(page, app.url, COLLECTION, LIMIT);
   await browser.close();
-  console.log("✅ 컬렉션 생성 단계 완료.");
 }
 
 main().catch((e) => {

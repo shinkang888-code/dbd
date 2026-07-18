@@ -40,20 +40,26 @@ DASHBOARD_URL=https://dbd0.vercel.app MOBBIN_SYNC_TOKEN=xxx \
 
 ## 3) 대시보드에서 카테고리 편집
 
-`/studio/mobbin` 에서 이름변경·병합·앱 수동 재분류 → 계획(dry-run)이 즉시 갱신 →
-**계획 기록(Apply)** 버튼으로 스냅샷 기록.
+`/studio/mobbin` 에서 이름변경·병합·앱 수동 재분류 → 카테고리별 앱 인덱스가 즉시 갱신 →
+**인덱스 스냅샷 저장** 버튼으로 감사 로그 기록. 여기가 "카테고리별로 내 앱 훑기"의 기본 화면입니다.
 
-## 4) Apply (컬렉션 생성 + 배치)
+## 4) 인덱스 확인 / 선택적 큐레이션
+
+**기본은 읽기 전용입니다 — mobbin에 아무것도 쓰지 않습니다.**
 
 ```bash
 DASHBOARD_URL=https://dbd0.vercel.app MOBBIN_SYNC_TOKEN=xxx \
-  npx tsx scripts/mobbin/apply.ts        # 컬렉션 생성까지
+  npx tsx scripts/mobbin/apply.ts          # 카테고리별 앱 인덱스 출력
 ```
 
+원할 때만, 앱 1개 단위로 명시적 큐레이션:
+
 ```bash
-SCREEN_LIMIT=10 DASHBOARD_URL=... MOBBIN_SYNC_TOKEN=xxx \
-  npx tsx scripts/mobbin/apply.ts --assign   # 스크린 배치까지
+... npx tsx scripts/mobbin/apply.ts --app <appKey> --collection "AI" --limit 10
 ```
+
+> 설계(B안): **앱→카테고리 분류는 dbd 대시보드가 소유**하고, mobbin 컬렉션은
+> 직접 고른 스크린만 담는 공간으로 둡니다. 대량 자동 배치는 하지 않습니다.
 
 ### ✅ RECON 완료 — 확정된 배치 경로
 

@@ -28,8 +28,18 @@ export type MobbinCategory = {
   sort: number;
 };
 
-/** 카테고리 컬렉션 계획(dry-run) 한 줄 */
+/**
+ * 카테고리별 앱 인덱스 한 줄.
+ * dbd가 분류를 소유한다 — mobbin에 자동으로 쓰지 않는다(스크린 큐레이션은 사용자 몫).
+ */
 export type PlanCollection = {
   collection: string;
-  apps: { appKey: string; name: string; url: string; iconUrl: string | null }[];
+  apps: {
+    appKey: string;
+    name: string;
+    url: string;
+    iconUrl: string | null;
+    platform: string[] | null;
+    screenCount: number;
+  }[];
 };

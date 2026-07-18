@@ -8,7 +8,7 @@ export default function MobbinPage() {
     <>
       <StudioPageHeader
         title="Mobbin Collection Organizer"
-        description="저장한 앱을 mobbin 네이티브 카테고리별 컬렉션으로 자동 분류합니다. 이미지는 저장하지 않고 링크·메타데이터만 다룹니다. 카테고리는 아래에서 이름변경·병합·수동 재분류할 수 있습니다."
+        description="저장한 mobbin 앱을 네이티브 카테고리별로 인덱싱해 한눈에 훑습니다. 분류는 이 대시보드가 소유하고 mobbin에는 쓰지 않습니다. 카테고리는 아래에서 이름변경·병합·수동 재분류할 수 있습니다."
       />
       <MobbinPanel />
     </>

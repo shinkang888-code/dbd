@@ -21,7 +21,14 @@ type Category = {
 };
 type PlanCollection = {
   collection: string;
-  apps: { appKey: string; name: string; url: string; iconUrl: string | null }[];
+  apps: {
+    appKey: string;
+    name: string;
+    url: string;
+    iconUrl: string | null;
+    platform: string[] | null;
+    screenCount: number;
+  }[];
 };
 type ApplyRun = {
   id: number;
@@ -79,9 +86,10 @@ export function MobbinPanel() {
     <div className="space-y-6">
       {/* 안전 경계 안내 */}
       <div className="rounded-2xl border border-line bg-fog/60 p-4 text-[12px] leading-relaxed text-dim">
-        <b className="text-ink">포인터 전용</b> · 유료 이미지/콘텐츠는 저장하지 않고 앱 링크·카테고리
-        메타만 다룹니다. 실제 mobbin 반영(컬렉션 생성·앱 배치)은 로그인 세션에서 도는{" "}
-        <b className="text-ink">로컬 어댑터</b>가 계획을 읽어 직렬·지연으로 수행합니다.
+        <b className="text-ink">포인터 전용 · mobbin에 쓰지 않음</b> · 유료 이미지/콘텐츠는 저장하지
+        않고 앱 링크·카테고리 메타만 다룹니다. 분류는 <b className="text-ink">이 대시보드가 소유</b>
+        하며, mobbin 컬렉션은 직접 고른 스크린만 담는 공간으로 남겨둡니다. (mobbin 컬렉션 단위는
+        앱이 아니라 스크린입니다.)
       </div>
 
       {/* 요약 */}
@@ -100,9 +108,9 @@ export function MobbinPanel() {
       <section className="rounded-2xl border border-line bg-paper p-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-[16px] font-bold">계획 미리보기 (dry-run)</p>
+            <p className="text-[16px] font-bold">카테고리별 앱 인덱스</p>
             <p className="mt-1 text-[12px] text-dim">
-              카테고리 편집·오버라이드가 즉시 반영됩니다. 확정하면 계획을 기록합니다.
+              카테고리 편집·오버라이드가 즉시 반영됩니다. 앱을 누르면 mobbin에서 열립니다.
             </p>
           </div>
           <button
@@ -110,12 +118,12 @@ export function MobbinPanel() {
             onClick={() =>
               run(
                 () => jsonFetch("/api/studio/mobbin/apply", { method: "POST" }),
-                "계획을 기록했습니다. 로컬 어댑터로 반영하세요.",
+                "현재 인덱스를 스냅샷으로 기록했습니다.",
               )
             }
             className="button-primary disabled:opacity-50"
           >
-            계획 기록 (Apply)
+            인덱스 스냅샷 저장
           </button>
         </div>
         <div className="grid gap-3 md:grid-cols-2">
@@ -125,16 +133,20 @@ export function MobbinPanel() {
                 <p className="text-[13px] font-bold">{col.collection}</p>
                 <span className="price text-[12px] font-bold text-dim">{col.apps.length}</span>
               </div>
-              <ul className="mt-3 flex flex-wrap gap-1.5">
+              <ul className="mt-3 space-y-1.5">
                 {col.apps.map((a) => (
                   <li key={a.appKey}>
                     <a
                       href={a.url}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex rounded-lg bg-fog px-2 py-1 text-[11px] font-semibold hover:bg-ink hover:text-white"
+                      className="flex items-center gap-2 rounded-lg bg-fog px-2.5 py-1.5 text-[11px] font-semibold hover:bg-ink hover:text-white"
                     >
-                      {a.name.length > 26 ? a.name.slice(0, 26) + "…" : a.name}
+                      <span className="min-w-0 flex-1 truncate">{a.name}</span>
+                      <span className="shrink-0 opacity-60">
+                        {(a.platform ?? []).join("/") || "—"}
+                        {a.screenCount ? ` · ${a.screenCount}` : ""}
+                      </span>
                     </a>
                   </li>
                 ))}
