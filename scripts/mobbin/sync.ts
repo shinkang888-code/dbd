@@ -62,23 +62,21 @@ async function readAppMeta(page: Page, href: string): Promise<App | null> {
 
   const name = (await page.locator("h1").first().textContent().catch(() => ""))?.trim() || appKey;
 
-  // "Category" 라벨 옆 값 — 실측 DOM 기준 best-effort. 셀렉터는 검증 후 조정 가능.
-  const readLabeled = async (label: string) => {
-    const node = page.locator(`text=${label}`).first();
-    const container = node.locator("xpath=..");
-    const txt = (await container.textContent().catch(() => "")) || "";
-    return txt.replace(label, "").trim();
-  };
-  const catText = await readLabeled("Category");
-  const platformText = await readLabeled("Platform");
-  const nativeCategories = catText
-    .split(",")
+  // 네이티브 카테고리는 링크로 노출된다(실측 확정):
+  //   <a href="/search/apps/ios?...&filter=appCategories.Photo+%26+Video">Photo & Video</a>
+  // 텍스트 파싱보다 안정적이라 링크 셀렉터를 쓴다.
+  const nativeCategories = (
+    await page.locator('a[href*="filter=appCategories."]').allTextContents()
+  )
     .map((s) => s.trim())
     .filter(Boolean);
-  const platform = platformText
-    .split(",")
+
+  // 플랫폼은 다른 플랫폼 변형 앱으로 가는 링크로 노출된다(iOS/Android/Web).
+  const platform = (
+    await page.locator('a[href^="/apps/"]:below(:text("Platform"))').allTextContents().catch(() => [])
+  )
     .map((s) => s.trim())
-    .filter(Boolean);
+    .filter((s) => /^(iOS|Android|Web|Site)$/i.test(s));
 
   // "Showing N screens"
   const body = (await page.locator("body").textContent().catch(() => "")) || "";

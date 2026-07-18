@@ -50,10 +50,23 @@ DASHBOARD_URL=https://dbd0.vercel.app MOBBIN_SYNC_TOKEN=xxx \
   npx tsx scripts/mobbin/apply.ts        # 컬렉션 생성까지
 ```
 
-### ⚠️ RECON 남은 1건 — "앱을 컬렉션에 배치"하는 UI 경로
+```bash
+SCREEN_LIMIT=10 DASHBOARD_URL=... MOBBIN_SYNC_TOKEN=xxx \
+  npx tsx scripts/mobbin/apply.ts --assign   # 스크린 배치까지
+```
 
-실측 결과 앱 상세의 `...` 메뉴에는 **Add to collection이 없었습니다**
-(Visit / Request update / Download all screens / Copy link 만 존재).
-배치 경로는 Saved 페이지의 이동·드래그 또는 `Saved` 버튼 드롭다운일 가능성이 큽니다.
-로그인 세션에서 그 경로를 확정한 뒤 `apply.ts`의 `assignToCollection()`을 채우고
-`--assign` 으로 실행하세요. 그 전까지 `apply.ts`는 **컬렉션 생성까지만** 반영합니다.
+### ✅ RECON 완료 — 확정된 배치 경로
+
+로그인 세션 실측으로 확정했습니다:
+
+1. **mobbin 컬렉션의 단위는 "앱"이 아니라 "스크린"** 입니다.
+2. 스크린 카드에 **hover** → 좌상단에 **원형 체크박스** 등장 → **네이티브 다중선택 지원**.
+3. 선택하면 하단에 일괄바: `N selected | Clear | ⬇ | Copy | Save`.
+4. `Save` 는 `aria-haspopup="dialog"` — 즉시 저장이 아니라 **다이얼로그**를 엽니다.
+5. 다이얼로그 구성: **`All saved`** / **`Add to collection`** → **`Create collection`** + 기존 컬렉션 목록.
+
+> 앱 상세의 `...` 메뉴에는 Add to collection이 없습니다(Visit / Request update /
+> Download all screens / Copy link 만 존재) — 배치는 위 일괄바 경로가 정답입니다.
+
+⚠️ 앱당 스크린이 수백 개(Instagram 666, Lovable 339)라 전량 배치는 과합니다.
+`SCREEN_LIMIT`(기본 10)으로 앱당 담을 개수를 반드시 제한하세요.
