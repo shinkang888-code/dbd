@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { MobbinSearchExplorer } from "@/components/studio/mobbin-search-explorer";
 
 type App = {
   appKey: string;
@@ -84,6 +85,8 @@ export function MobbinPanel() {
 
   return (
     <div className="space-y-6">
+      <MobbinSearchExplorer />
+
       {/* 안전 경계 안내 */}
       <div className="rounded-2xl border border-line bg-fog/60 p-4 text-[12px] leading-relaxed text-dim">
         <b className="text-ink">포인터 전용 · mobbin에 쓰지 않음</b> · 유료 이미지/콘텐츠는 저장하지

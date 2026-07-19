@@ -10,6 +10,9 @@
     "seed:dummy": "tsx scripts/seed-dummy.ts",
     "seed:studio": "tsx scripts/seed-studio.ts",
     "smoke:studio": "node scripts/smoke-studio.mjs",
+    "mobbin:login": "tsx scripts/mobbin/login.ts",
+    "mobbin:bridge": "tsx scripts/mobbin/search-bridge.ts",
+    "mobbin:sync": "tsx scripts/mobbin/sync.ts",
     "deploy": "bash scripts/deploy.sh"
   },
   "dependencies": {
@@ -33,6 +36,7 @@
     "@types/react-dom": "^19.1.0",
     "dotenv": "^17.4.2",
     "drizzle-kit": "^0.31.4",
+    "playwright": "^1.55.0",
     "tailwindcss": "^4.1.13",
     "tsx": "^4.20.0",
     "typescript": "^5.9.2"

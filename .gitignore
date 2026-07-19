@@ -21,3 +21,6 @@ drizzle/
 *.log
 .DS_Store
 tsconfig.tsbuildinfo
+
+# mobbin local session (cookies only — never commit)
+.mobbin-session.json

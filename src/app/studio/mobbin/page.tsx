@@ -8,7 +8,7 @@ export default function MobbinPage() {
     <>
       <StudioPageHeader
         title="Mobbin Collection Organizer"
-        description="저장한 mobbin 앱을 네이티브 카테고리별로 인덱싱해 한눈에 훑습니다. 분류는 이 대시보드가 소유하고 mobbin에는 쓰지 않습니다. 카테고리는 아래에서 이름변경·병합·수동 재분류할 수 있습니다."
+        description="상단 검색은 로컬 Mobbin 브릿지(본인 PC)로만 파싱합니다. 아래 인덱스는 저장된 앱 메타를 카테고리별로 보여 주며, 분류는 이 대시보드가 소유합니다."
       />
       <MobbinPanel />
     </>
