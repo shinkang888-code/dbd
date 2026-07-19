@@ -86,7 +86,7 @@ export function LedgerAlertsPanel({
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center">
           <p className="font-medium text-emerald-800">??? ?? ??</p>
           <p className="mt-1 text-[13px] text-emerald-600">
-            3?? ??(????????) ?? ?????.
+            3?? ??(??-??-??) ?? ?????.
           </p>
         </div>
       ) : (
@@ -108,7 +108,7 @@ export function LedgerAlertsPanel({
                     {ALERT_LABEL[a.alert_type] ?? a.alert_type}
                   </p>
                   <p className="mt-1 text-[11px] text-dim">
-                    {new Date(a.created_at).toLocaleString("ko-KR")} · ??? {a.tenant_id}
+                    {new Date(a.created_at).toLocaleString("ko-KR")} / ??? {a.tenant_id}
                   </p>
                   {a.tamper_point_tx_id && (
                     <p className="mt-1 font-mono text-[11px] text-red-700">
@@ -117,7 +117,7 @@ export function LedgerAlertsPanel({
                   )}
                   <p className="mt-2 text-[11px] text-dim">
                     Replay: {a.replay_status}
-                    {a.resolved_at && ` · ?? ${new Date(a.resolved_at).toLocaleString("ko-KR")}`}
+                    {a.resolved_at && ` / ?? ${new Date(a.resolved_at).toLocaleString("ko-KR")}`}
                   </p>
                 </div>
                 {!a.resolved_at && (

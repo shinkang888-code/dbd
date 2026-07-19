@@ -97,8 +97,8 @@ export function LedgerOverviewPanel({
         <div className="min-w-0 flex-1">
           <p className="font-semibold text-ink">
             {health === "healthy" && "?? ??"}
-            {health === "degraded" && "?? ? ?? ??"}
-            {health === "critical" && "?? ? ??? ??"}
+            {health === "degraded" && "?? - ?? ??"}
+            {health === "critical" && "?? - ??? ??"}
             {health === "disabled" && "?? ?? ???"}
           </p>
           <p className="mt-1 text-[13px] text-dim">{data?.healthMessage}</p>
@@ -111,7 +111,7 @@ export function LedgerOverviewPanel({
             className="button-secondary inline-flex items-center gap-1 disabled:opacity-50"
           >
             <RefreshCw size={14} className={working ? "animate-spin" : ""} />
-            ??·?? ??
+            ??/?? ??
           </button>
           <button
             type="button"
@@ -127,12 +127,7 @@ export function LedgerOverviewPanel({
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatCard label="?? ?? H_v" value={data?.identityCount ?? 0} icon={Shield} />
-        <StatCard
-          label="?? ??"
-          value={data?.txPending ?? 0}
-          icon={Clock}
-          warn={!!data?.txPending}
-        />
+        <StatCard label="?? ??" value={data?.txPending ?? 0} icon={Clock} warn={!!data?.txPending} />
         <StatCard label="Merkle ??" value={data?.blockCount ?? 0} icon={Link2} />
         <StatCard label="?? ??" value={data?.anchorCount ?? 0} icon={Activity} />
       </div>

@@ -91,7 +91,7 @@ export function LedgerTransactionExplorer({ refreshKey }: { refreshKey: number }
         <p className="py-6 text-[13px] text-dim">???? ?...</p>
       ) : rows.length === 0 ? (
         <p className="py-6 text-[13px] text-dim">
-          ?? ??? ????. ??·??·?? ??? ?? ? ?????.
+          ?? ??? ????. ??/??/?? ??? ?? ? ?????.
         </p>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-line bg-paper">
@@ -172,7 +172,7 @@ function summarizeTransData(data: Record<string, unknown>): string {
   if (summary && typeof summary === "object") {
     const s = summary as Record<string, unknown>;
     const parts = [action, s.channel, s.status, s.documentId].filter(Boolean);
-    if (parts.length) return String(parts.join(" · "));
+    if (parts.length) return String(parts.join(" / "));
   }
   return action ? String(action) : JSON.stringify(data).slice(0, 60);
 }
