@@ -38,9 +38,13 @@ export default async function AdminPage() {
             ) : (
               <>
                 <Link href="/auth/sign-in" className="font-bold text-coral">
-                  Google 로그인
+                  로그인
                 </Link>
-                후 관리 API 사용 · DB source: {stats.source}
+                {" · "}
+                <a href="/api/auth/demo?next=/admin" className="font-bold text-coral">
+                  데모 로그인
+                </a>
+                {" "}후 관리 API 사용 · DB source: {stats.source}
               </>
             )}
           </p>

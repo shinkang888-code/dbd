@@ -1,19 +1,28 @@
-// filepath: src/lib/auth/demo.ts
 /**
- * 데모 로그인 — Neon Auth 활성화 전 임시 체험용.
- * DEMO_LOGIN=1 인 배포에서만 동작하며(기본 잠금), 플래그 제거+재배포로 즉시 비활성화된다.
- * 쿠키는 서버 시크릿 HMAC 서명값이라 위조 불가하지만, 데모 모드 자체가
- * "버튼만 누르면 입장"이므로 공개 체험 용도로만 켤 것. (Edge/Node 겸용 Web Crypto)
+ * 데모 로그인 — Google/Neon Auth 없이 관리자 콘솔 체험.
+ * 기본 ON. DEMO_LOGIN=0 또는 false 로만 끈다.
+ * 쿠키는 서버 시크릿 HMAC 서명값 (Edge/Node Web Crypto).
  */
 
 export const DEMO_COOKIE = "lexi_demo";
+export const DEMO_USER = {
+  id: "demo:admin",
+  email: "demo@dbd.local",
+  name: "Demo Admin",
+  image: null as string | null,
+} as const;
 
-export const demoEnabled = () => process.env.DEMO_LOGIN === "1";
+/** DEMO_LOGIN=0|false 일 때만 비활성. 미설정·1 은 활성. */
+export const demoEnabled = () => {
+  const v = process.env.DEMO_LOGIN?.trim().toLowerCase();
+  if (v === "0" || v === "false" || v === "off") return false;
+  return true;
+};
 
 const enc = new TextEncoder();
 
 export async function demoCookieValue(): Promise<string> {
-  const secret = process.env.HQ_API_TOKEN || "lexi-demo-fallback";
+  const secret = process.env.HQ_API_TOKEN || process.env.AUTH_SECRET || "lexi-demo-fallback";
   const key = await crypto.subtle.importKey(
     "raw",
     enc.encode(secret),
@@ -36,4 +45,14 @@ export async function isDemoCookieValid(value: string | null | undefined): Promi
 export async function isDemoRequest(req: Request): Promise<boolean> {
   const m = (req.headers.get("cookie") ?? "").match(/(?:^|;\s*)lexi_demo=([^;]+)/);
   return isDemoCookieValid(m?.[1]);
+}
+
+/** cookies() jar 기준 데모 세션 (서버 컴포넌트/API) */
+export async function getDemoSessionFromCookies(
+  getCookie: (name: string) => { value: string } | undefined,
+): Promise<{ user: typeof DEMO_USER } | null> {
+  if (!demoEnabled()) return null;
+  const ok = await isDemoCookieValid(getCookie(DEMO_COOKIE)?.value);
+  if (!ok) return null;
+  return { user: DEMO_USER };
 }

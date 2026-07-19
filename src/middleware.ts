@@ -13,7 +13,7 @@ export default async function middleware(req: NextRequest) {
   if (await verifySessionToken(req.cookies.get(SESSION_COOKIE)?.value)) {
     return NextResponse.next();
   }
-  // 2) 데모 세션(DEMO_LOGIN=1 + 서명 쿠키)은 Neon Auth 없이 통과
+  // 2) 데모 세션(서명 쿠키)은 Neon Auth 없이 통과. DEMO_LOGIN=0 이면 비활성.
   if (await isDemoCookieValid(req.cookies.get(DEMO_COOKIE)?.value)) {
     return NextResponse.next();
   }
