@@ -11,8 +11,22 @@ export function generateStaticParams() {
   return Object.values(authViewPaths).map((path) => ({ path }));
 }
 
-export default async function AuthPage({ params }: { params: Promise<{ path: string }> }) {
+function resolveNext(raw: string | string[] | undefined) {
+  const v = Array.isArray(raw) ? raw[0] : raw;
+  if (!v || !v.startsWith("/") || v.startsWith("//")) return "/studio";
+  return v;
+}
+
+export default async function AuthPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ path: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { path } = await params;
+  const sp = await searchParams;
+  const next = resolveNext(sp.next);
   const googleReady = Boolean(process.env.GOOGLE_CLIENT_ID);
   const isSignIn = path === "sign-in";
 
@@ -28,9 +42,11 @@ export default async function AuthPage({ params }: { params: Promise<{ path: str
       {isSignIn && (
         <div className="mb-6 w-full max-w-sm rounded-2xl border border-line bg-paper p-6 shadow-sm">
           <p className="text-center text-[15px] font-semibold text-ink">계정 없이 바로 시작</p>
-          <p className="mt-1 text-center text-[12px] text-dim">버튼 한 번이면 Admin에 로그인됩니다</p>
+          <p className="mt-1 text-center text-[12px] text-dim">
+            데모 로그인 후 {next.startsWith("/studio") ? "LEXI Studio" : "Admin"}으로 이동합니다
+          </p>
           <DemoLoginButton
-            next="/admin"
+            next={next}
             className="mt-5 flex w-full items-center justify-center rounded-xl bg-coral px-4 py-3.5 text-[15px] font-bold text-white hover:opacity-90"
           />
         </div>
@@ -46,13 +62,15 @@ export default async function AuthPage({ params }: { params: Promise<{ path: str
           <h1 className="text-[16px] font-bold text-dim">계정 로그인 (선택)</h1>
           {googleReady ? (
             <a
-              href="/api/auth/google"
+              href={`/api/auth/google?next=${encodeURIComponent(next)}`}
               className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-line px-4 py-3 text-[14px] font-semibold transition-colors hover:bg-fog"
             >
               Google로 로그인
             </a>
           ) : (
-            <p className="mt-3 text-[12px] text-dim">Google 미설정 — 위 데모 로그인만 사용하면 됩니다.</p>
+            <p className="mt-3 text-[12px] text-dim">
+              Google 미설정 — 위 데모 로그인으로 Studio/Admin을 이용하세요.
+            </p>
           )}
         </div>
       )}

@@ -7,7 +7,7 @@ function redirectTarget(req: Request) {
   const url = new URL(req.url);
   const next = url.searchParams.get("next");
   if (next && next.startsWith("/") && !next.startsWith("//")) return next;
-  return "/admin";
+  return "/studio";
 }
 
 async function issueDemoSession(req: Request) {

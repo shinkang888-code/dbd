@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { Search, Heart, ShoppingBag } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { UtilityStrip } from "./utility-strip";
 import { UserMenu } from "./user-menu";
 import { CartBadge } from "./cart-badge";
@@ -14,6 +17,12 @@ const GNB = [
 ];
 
 export function SiteHeader() {
+  const pathname = usePathname() || "/";
+  const demoNext =
+    pathname.startsWith("/studio") || pathname.startsWith("/admin")
+      ? pathname
+      : "/studio";
+
   return (
     <>
       <UtilityStrip />
@@ -39,7 +48,7 @@ export function SiteHeader() {
 
           <div className="flex items-center gap-2">
             <DemoLoginButton
-              next="/admin"
+              next={demoNext}
               className="rounded-full bg-coral px-3 py-1.5 text-[12px] font-bold text-white hover:opacity-90"
             />
             <UserMenu />

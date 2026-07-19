@@ -21,8 +21,12 @@ export const demoEnabled = () => {
 
 const enc = new TextEncoder();
 
+/** 서명 시크릿 — Vercel에 AUTH_SECRET 있으면 그걸 우선 (Edge/Node 동일) */
 export async function demoCookieValue(): Promise<string> {
-  const secret = process.env.HQ_API_TOKEN || process.env.AUTH_SECRET || "lexi-demo-fallback";
+  const secret =
+    process.env.AUTH_SECRET ||
+    process.env.HQ_API_TOKEN ||
+    "lexi-demo-fallback";
   const key = await crypto.subtle.importKey(
     "raw",
     enc.encode(secret),

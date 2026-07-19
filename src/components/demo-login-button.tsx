@@ -9,7 +9,7 @@ type Props = {
  * 비활성(DEMO_LOGIN=0)이면 API가 404.
  */
 export function DemoLoginButton({
-  next = "/admin",
+  next = "/studio",
   label = "데모 로그인",
   className,
 }: Props) {
