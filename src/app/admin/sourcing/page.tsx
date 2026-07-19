@@ -1,8 +1,6 @@
-import { SourcingConsole } from "@/components/admin/sourcing-console";
+import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-export const metadata = { title: "역직구 콘솔" };
-
+/** 구 Admin 역직구 → PieChain HQ 공급처 */
 export default function SourcingPage() {
-  return <SourcingConsole />;
+  redirect("/hq/suppliers");
 }

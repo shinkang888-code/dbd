@@ -17,6 +17,8 @@ export type RemoteProduct = {
 
 export type SourcingOrderPayload = {
   externalId: string;
+  /** CJ 등 variant 단위 발주 시 vid (없으면 externalId를 vid로 쓰는 커넥터도 있음) */
+  variantId?: string;
   qty: number;
   shippingAddress: Record<string, string>;
   note?: string;

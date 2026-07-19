@@ -7,7 +7,9 @@ import type { RemoteProduct, SourcingOrderPayload, SupplierConnector } from "../
 
 const BASE = "https://developers.cjdropshipping.com/api2.0/v1";
 
-const configured = () => Boolean(process.env.CJ_API_EMAIL && process.env.CJ_API_KEY);
+export const isCjConfigured = () => Boolean(process.env.CJ_API_EMAIL && process.env.CJ_API_KEY);
+
+const configured = isCjConfigured;
 
 let cachedToken: { token: string; exp: number } | null = null;
 
@@ -48,25 +50,82 @@ function parseCjPrice(v: unknown): number {
   return Math.min(...nums.map(Number).filter(Number.isFinite));
 }
 
-function mapProduct(p: Record<string, unknown>): RemoteProduct {
+type CjVariant = {
+  vid: string;
+  variantSku?: string;
+  variantName?: string;
+  variantKey?: string;
+  price?: number;
+  inventory?: number;
+};
+
+/** pid → variants; 실패 시 빈 배열 (목록 수집이 막히지 않게) */
+async function fetchVariants(pid: string): Promise<CjVariant[]> {
+  try {
+    const data = await cj(`/product/variant/query?pid=${encodeURIComponent(pid)}`);
+    const list = (data?.variants ?? data?.list ?? data?.variantList ?? data ?? []) as Record<string, unknown>[];
+    if (!Array.isArray(list)) return [];
+    return list
+      .map((v) => ({
+        vid: String(v.vid ?? v.variantId ?? ""),
+        variantSku: v.variantSku ? String(v.variantSku) : undefined,
+        variantName: v.variantNameEn || v.variantName ? String(v.variantNameEn ?? v.variantName) : undefined,
+        variantKey: v.variantKey ? String(v.variantKey) : undefined,
+        price: parseCjPrice(v.variantSellPrice ?? v.sellPrice ?? v.price),
+        inventory: Number(v.inventory ?? v.stock ?? 0) || 0,
+      }))
+      .filter((v) => v.vid);
+  } catch {
+    return [];
+  }
+}
+
+function mapProduct(p: Record<string, unknown>, variants?: CjVariant[]): RemoteProduct {
   const images = Array.isArray(p.productImage)
     ? (p.productImage as string[]).map((url) => ({ url }))
     : typeof p.productImage === "string"
       ? [{ url: p.productImage as string }]
       : [];
+  const pid = String(p.pid ?? p.productId ?? "");
+  const defaultVid = variants?.[0]?.vid;
   return {
-    externalId: String(p.pid ?? p.productId ?? ""),
+    externalId: pid,
     url: p.productUrl ? String(p.productUrl) : undefined,
     title: String(p.productNameEn ?? p.productName ?? "Untitled"),
     descriptionHtml: p.description ? String(p.description) : undefined,
     categoryPath: String(p.categoryName ?? "General").split(">").map((s) => s.trim()),
-    price: parseCjPrice(p.sellPrice ?? p.price),
+    price: parseCjPrice(variants?.[0]?.price ?? p.sellPrice ?? p.price),
     currency: "USD",
-    stock: Number(p.listedNum ?? p.stock ?? 0) || 0,
+    stock: Number(variants?.[0]?.inventory ?? p.listedNum ?? p.stock ?? 0) || 0,
     sellerName: "CJDropshipping",
-    sellerInfo: { supplierId: p.supplierId, warehouse: p.sourceFrom },
+    sellerInfo: {
+      supplierId: p.supplierId,
+      warehouse: p.sourceFrom,
+      pid,
+      defaultVid: defaultVid ?? null,
+      mock: false,
+    },
     images,
+    optionSchema: variants?.length
+      ? {
+          defaultVid,
+          variants: variants.map((v) => ({
+            vid: v.vid,
+            sku: v.variantSku,
+            name: v.variantName,
+            key: v.variantKey,
+            price: v.price,
+            inventory: v.inventory,
+          })),
+        }
+      : undefined,
   };
+}
+
+async function mapProductWithVariants(p: Record<string, unknown>): Promise<RemoteProduct> {
+  const pid = String(p.pid ?? p.productId ?? "");
+  const variants = pid ? await fetchVariants(pid) : [];
+  return mapProduct(p, variants);
 }
 
 /* ---------- 목업 픽스처 (API 키 발급 전 개발/데모용) ---------- */
@@ -79,7 +138,12 @@ const FIXTURES: RemoteProduct[] = [
   { externalId: "cj-1006", title: "Pet Hair Remover Roller Reusable", categoryPath: ["Home", "Pet"], price: 3.1, currency: "USD", stock: 900, images: [{ url: "https://picsum.photos/seed/cj1006/800/800" }], sellerName: "CJ Warehouse CN" },
   { externalId: "cj-1007", title: "Acupressure Neck Stretcher Pillow", categoryPath: ["Health", "Wellness"], price: 5.6, currency: "USD", stock: 210, images: [{ url: "https://picsum.photos/seed/cj1007/800/800" }], sellerName: "CJ Warehouse CN" },
   { externalId: "cj-1008", title: "Mini Thermal Label Printer BT", categoryPath: ["Office", "Gadgets"], price: 14.9, currency: "USD", stock: 130, images: [{ url: "https://picsum.photos/seed/cj1008/800/800" }], sellerName: "CJ Warehouse CN" },
-].map((p) => ({ ...p, descriptionHtml: `<p>${p.title} — factory-direct item via CJ fulfillment.</p>`, sellerInfo: { mock: true } }));
+].map((p) => ({
+  ...p,
+  descriptionHtml: `<p>${p.title} — factory-direct item via CJ fulfillment.</p>`,
+  sellerInfo: { mock: true, pid: p.externalId, defaultVid: `vid-${p.externalId}` },
+  optionSchema: { defaultVid: `vid-${p.externalId}`, variants: [{ vid: `vid-${p.externalId}`, name: "Default" }] },
+}));
 
 let mockOrderSeq = 5000;
 
@@ -90,20 +154,34 @@ export const cjConnector: SupplierConnector = {
     if (!configured()) {
       return page === 1 ? FIXTURES.filter((p) => !category || p.categoryPath.includes(category)) : [];
     }
-    const data = await cj(`/product/list?pageNum=${page}&pageSize=${pageSize}${category ? `&categoryKeyword=${encodeURIComponent(category)}` : ""}`);
-    return ((data?.list ?? []) as Record<string, unknown>[]).map(mapProduct);
+    // 공식 list (pageNum/pageSize) — listV2 content 구조가 달라 매핑이 깨지므로 list 사용
+    const qs = new URLSearchParams({
+      pageNum: String(page),
+      pageSize: String(pageSize),
+    });
+    if (category) qs.set("categoryKeyword", category);
+    const data = await cj(`/product/list?${qs}`);
+    const rows = (data?.list ?? []) as Record<string, unknown>[];
+    // variant 조회는 페이지당 N회 — timeout 방지: 최대 8건만 보강
+    const slice = rows.slice(0, Math.min(rows.length, 8));
+    const rest = rows.slice(slice.length);
+    const enriched = await Promise.all(slice.map((p) => mapProductWithVariants(p)));
+    return [...enriched, ...rest.map((p) => mapProduct(p))];
   },
 
   async getProduct(externalId) {
     if (!configured()) return FIXTURES.find((p) => p.externalId === externalId) ?? null;
     const data = await cj(`/product/query?pid=${encodeURIComponent(externalId)}`);
-    return data ? mapProduct(data) : null;
+    if (!data) return null;
+    return mapProductWithVariants(data as Record<string, unknown>);
   },
 
   async placeOrder(req: SourcingOrderPayload) {
     if (!configured()) {
       return { supplierOrderRef: `CJ-MOCK-${++mockOrderSeq}` };
     }
+    const vid = req.variantId || req.externalId;
+    if (!vid) throw new Error("CJ placeOrder: vid 필요 (variantId 또는 externalId)");
     const data = await cj(`/shopping/order/createOrderV2`, {
       method: "POST",
       body: JSON.stringify({
@@ -116,7 +194,7 @@ export const cjConnector: SupplierConnector = {
         shippingZip: req.shippingAddress.zip ?? "",
         shippingPhone: req.shippingAddress.phone ?? "",
         remark: req.note ?? "",
-        products: [{ vid: req.externalId, quantity: req.qty }],
+        products: [{ vid, quantity: req.qty }],
       }),
     });
     return { supplierOrderRef: String(data?.orderId ?? data ?? "") };

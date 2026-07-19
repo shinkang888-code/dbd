@@ -1,7 +1,5 @@
-import { BannersPanel } from "@/components/admin/banners-panel";
+import { redirect } from "next/navigation";
 
-export const metadata = { title: "Admin · Banners" };
-
-export default function AdminBannersPage() {
-  return <BannersPanel />;
+export default function AdminBannersRedirect() {
+  redirect("/hq/banners");
 }

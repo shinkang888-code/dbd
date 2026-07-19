@@ -3,6 +3,7 @@ import { audit, iso, mutate, nextId } from "@/lib/hq/store";
 import type { Supplier, SupplierProduct } from "@/lib/hq/types";
 import { getConnector } from "./registry";
 import { contentHashOf, type RemoteProduct } from "./types";
+import { isCjConfigured } from "./connectors/cjdropshipping";
 
 function upsertRemote(
   s: { supplierProducts: SupplierProduct[] },
@@ -43,9 +44,12 @@ function upsertRemote(
   }
   Object.assign(existing, {
     rawTitle: remote.title,
+    rawDescriptionHtml: remote.descriptionHtml,
     priceOriginal: remote.price,
     stock: remote.stock,
     images: remote.images,
+    sellerInfo: remote.sellerInfo,
+    optionSchema: remote.optionSchema,
     contentHash: hash,
     fetchedAt: iso(),
     syncStatus: "stale", // 연결된 리스팅 재검토 필요 표시
@@ -60,14 +64,25 @@ export async function syncSupplier(supplierCode: string, opts?: { pages?: number
     const connector = getConnector(supplier.code);
     if (!connector) throw new Error(`no connector for: ${supplier.code}`);
 
-    const stats = { created: 0, updated: 0, unchanged: 0 };
+    const stats = { created: 0, updated: 0, unchanged: 0, mode: "live" as "live" | "mock" };
     const pages = opts?.pages ?? 3;
+    let firstBatch: RemoteProduct[] | null = null;
     for (let page = 1; page <= pages; page++) {
       const batch = await connector.listProducts({ page, category: opts?.category });
       if (batch.length === 0) break;
+      if (!firstBatch) firstBatch = batch;
       for (const remote of batch) {
         stats[upsertRemote(s, supplier, remote, () => nextId(s))]++;
       }
+    }
+    const sample = firstBatch?.[0];
+    if (sample?.sellerInfo?.mock === true || sample?.externalId?.startsWith("cj-10")) {
+      stats.mode = "mock";
+    }
+    // CJ: 키가 없으면 커넥터가 mock — 명시 표기
+    if (supplierCode === "cjdropshipping") {
+      if (!isCjConfigured()) stats.mode = "mock";
+      else if (sample && !String(sample.externalId).startsWith("cj-10")) stats.mode = "live";
     }
     audit(s, "supplier", supplier.id, "synced", "system", undefined, stats);
     return { supplier: supplier.code, ...stats };

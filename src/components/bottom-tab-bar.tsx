@@ -13,8 +13,13 @@ const TABS = [
 ];
 
 export function BottomTabBar() {
-  const pathname = usePathname() || "/";
-  if (pathname.startsWith("/admin") || pathname.startsWith("/studio")) {
+  const pathname = usePathname();
+  if (
+    pathname.startsWith("/hq") ||
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/studio") ||
+    pathname.startsWith("/auth")
+  ) {
     return null;
   }
   return (

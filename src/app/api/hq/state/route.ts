@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { hqActor, unauthorized } from "@/lib/hq/auth";
 import { getState } from "@/lib/hq/store";
+import { isCjConfigured } from "@/lib/sourcing/connectors/cjdropshipping";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,21 @@ export async function GET(req: Request) {
     settlements: s.settlements,
     audit: s.audit.slice(0, 100),
     fx: s.fx,
+    connectorStatus: {
+      cjdropshipping: { configured: isCjConfigured(), mode: isCjConfigured() ? "live" : "mock" },
+      alibaba: {
+        configured: Boolean(process.env.ALIBABA_OPEN_APP_KEY && process.env.ALIBABA_OPEN_APP_SECRET),
+      },
+      "cafe24-mall": { configured: Boolean(process.env.CAFE24_MALL_ID && process.env.CAFE24_ACCESS_TOKEN) },
+      temu: {
+        configured: Boolean(
+          process.env.TEMU_PARTNER_TOKEN || (process.env.TEMU_APP_KEY && process.env.TEMU_APP_SECRET),
+        ),
+      },
+      superbuy: {
+        configured: Boolean(process.env.SUPERBUY_APP_KEY && process.env.SUPERBUY_APP_SECRET),
+      },
+    },
     // AI 마케팅 피드 — 무거운 필드(renderedHtml·embedding)는 목록에서 제외, 상세는 [id]에서 조회
     marketingAssets: s.marketingAssets.map(({ renderedHtml, embedding, payload, ...a }) => ({
       ...a,

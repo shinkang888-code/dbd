@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { Search, Heart, ShoppingBag } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { Search, Heart, ShoppingBag } from "lucide-react";
 import { UtilityStrip } from "./utility-strip";
 import { UserMenu } from "./user-menu";
 import { CartBadge } from "./cart-badge";
-import { DemoLoginButton } from "./demo-login-button";
+import { isOpsPath } from "@/lib/ops-path";
 
 const GNB = [
   { label: "Beauty", href: "/category/beauty" },
@@ -17,11 +17,8 @@ const GNB = [
 ];
 
 export function SiteHeader() {
-  const pathname = usePathname() || "/";
-  if (pathname.startsWith("/admin") || pathname.startsWith("/studio")) {
-    return null;
-  }
-  const demoNext = "/studio";
+  const pathname = usePathname();
+  if (isOpsPath(pathname)) return null;
 
   return (
     <>
@@ -46,20 +43,12 @@ export function SiteHeader() {
             ))}
           </nav>
 
-          <div className="flex items-center gap-2">
-            <DemoLoginButton
-              next={demoNext}
-              className="rounded-full bg-coral px-3 py-1.5 text-[12px] font-bold text-white hover:opacity-90"
-            />
+          <div className="flex items-center gap-1">
             <UserMenu />
             <Link href="/search" aria-label="검색" className="grid size-11 place-items-center rounded-full hover:bg-fog">
               <Search className="size-[22px]" strokeWidth={1.7} />
             </Link>
-            <Link
-              href="/account/wishlist"
-              aria-label="위시리스트"
-              className="hidden size-11 place-items-center rounded-full hover:bg-fog md:grid"
-            >
+            <Link href="/account/wishlist" aria-label="위시리스트" className="hidden size-11 place-items-center rounded-full hover:bg-fog md:grid">
               <Heart className="size-[22px]" strokeWidth={1.7} />
             </Link>
             <Link href="/cart" aria-label="장바구니" className="relative grid size-11 place-items-center rounded-full hover:bg-fog">

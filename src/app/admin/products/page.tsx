@@ -1,7 +1,6 @@
-import { ProductsPanel } from "@/components/admin/products-panel";
+import { redirect } from "next/navigation";
 
-export const metadata = { title: "Admin · Products" };
-
-export default function AdminProductsPage() {
-  return <ProductsPanel />;
+/** 레거시 AdminShell 경로 → PieChain HQ만 사용 */
+export default function AdminProductsRedirect() {
+  redirect("/hq/products");
 }

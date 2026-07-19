@@ -313,8 +313,15 @@ export async function createSourcingOrder(prId: number, actor: string) {
     const connector = getConnector(supplier.code);
     let supplierOrderRef: string | undefined;
     if (connector?.placeOrder) {
+      const defaultVid =
+        (sp.sellerInfo?.defaultVid as string | undefined) ||
+        (sp.optionSchema && typeof sp.optionSchema === "object"
+          ? String((sp.optionSchema as { defaultVid?: string }).defaultVid ?? "")
+          : "") ||
+        undefined;
       const r = await connector.placeOrder({
         externalId: sp.externalId,
+        variantId: defaultVid || undefined,
         qty: pr.qty,
         shippingAddress: pr.shippingAddress ?? {},
         note: `LEXI PR#${pr.id} / ${pr.externalOrderRef}`,

@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
 import { bad, hqActor, unauthorized } from "@/lib/hq/auth";
-import { audit, iso, mutate, nextId } from "@/lib/hq/store";
+import { audit, getState, iso, mutate, nextId } from "@/lib/hq/store";
 
 export const dynamic = "force-dynamic";
+
+export async function GET(req: Request) {
+  if (!(await hqActor(req))) return unauthorized();
+  const s = await getState();
+  return NextResponse.json({ collections: s.collections, items: s.collectionItems });
+}
 
 export async function POST(req: Request) {
   const actor = await hqActor(req);

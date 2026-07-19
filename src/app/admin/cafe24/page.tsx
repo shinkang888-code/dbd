@@ -1,7 +1,5 @@
-import { Cafe24Panel } from "@/components/admin/cafe24-panel";
+import { redirect } from "next/navigation";
 
-export const metadata = { title: "Admin · Cafe24" };
-
-export default function AdminCafe24Page() {
-  return <Cafe24Panel />;
+export default function AdminCafe24Redirect() {
+  redirect("/hq/channels");
 }

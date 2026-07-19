@@ -3,7 +3,7 @@
 운영용 **Admin · Studio · HQ 소싱 · Mobbin** 대시보드.  
 고객 몰은 [lexistyle](https://github.com/shinkang888-code/lexistyle) — 몰의 `/admin`·`/studio`가 이 앱으로 리다이렉트됩니다.
 
-분리 명세: [`docs/dashboard-split.md`](docs/dashboard-split.md) · Cafe24 Studio: [`docs/lexi-cafe24-studio-master-spec.md`](docs/lexi-cafe24-studio-master-spec.md)
+분리 명세: [`docs/dashboard-split.md`](docs/dashboard-split.md) · Cafe24 Studio: [`docs/lexi-cafe24-studio-master-spec.md`](docs/lexi-cafe24-studio-master-spec.md) · Google 로그인: [`docs/google-oauth-setup.md`](docs/google-oauth-setup.md)
 
 ## 역할
 

@@ -35,10 +35,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
         />
       </head>
-      <body className="min-h-dvh pb-16 md:pb-0">
+      <body className="min-h-dvh pb-16 md:pb-0 [&:has([data-hq-shell])]:pb-0">
         <AuthProvider>
           <SiteHeader />
-          <main>{children}</main>
+          {children}
           <SiteFooter />
           <BottomTabBar />
         </AuthProvider>

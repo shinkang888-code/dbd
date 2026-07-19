@@ -12,6 +12,7 @@ type State = {
   drafts: Dict[]; listings: Dict[]; channels: Dict[]; channelListings: Dict[];
   purchaseRequests: Dict[]; sourcingOrders: Dict[]; settlements: Dict[]; audit: Dict[];
   fx: Record<string, number>;
+  connectorStatus?: Record<string, { configured?: boolean; mode?: string }>;
 };
 
 const TABS = ["공급처", "소싱상품", "초안승인", "리스팅", "구매요청", "발주", "정산"] as const;
@@ -58,8 +59,13 @@ const badge = (v: string) => {
   );
 };
 
-export function SourcingConsole() {
-  const [tab, setTab] = useState<(typeof TABS)[number]>("공급처");
+export function SourcingConsole({
+  tab: forcedTab,
+}: {
+  /** HQ 사이드바에서 고정 — 내부 퍼널/탭 숨김 */
+  tab?: (typeof TABS)[number];
+} = {}) {
+  const [tab, setTab] = useState<(typeof TABS)[number]>(forcedTab ?? "공급처");
   const [s, setS] = useState<State | null>(null);
   const [busy, setBusy] = useState("");
   const [msg, setMsg] = useState("");
@@ -75,6 +81,9 @@ export function SourcingConsole() {
       setMsg(e instanceof Error ? e.message : "load failed");
     }
   }, []);
+  useEffect(() => {
+    if (forcedTab) setTab(forcedTab);
+  }, [forcedTab]);
   useEffect(() => { void reload(); }, [reload]);
 
   const run = async (label: string, fn: () => Promise<unknown>) => {
@@ -82,7 +91,9 @@ export function SourcingConsole() {
     setMsg("");
     try {
       const r = await fn();
-      setMsg(`✓ ${label}: ${JSON.stringify(r).slice(0, 180)}`);
+      const mode = r && typeof r === "object" && "mode" in r ? String((r as { mode?: string }).mode) : "";
+      const modeTag = mode === "live" ? " [실API]" : mode === "mock" ? " [목업]" : "";
+      setMsg(`✓ ${label}${modeTag}: ${JSON.stringify(r).slice(0, 180)}`);
       await reload();
     } catch (e) {
       setMsg(`✖ ${label}: ${e instanceof Error ? e.message : "failed"}`);
@@ -124,8 +135,13 @@ export function SourcingConsole() {
     : s.purchaseRequests.length === 0 ? "⑥ 구매요청 탭에서 쿠팡 주문을 가져오세요"
     : null;
 
+  const activeTab = forcedTab ?? tab;
+  const hideChrome = Boolean(forcedTab);
+
   return (
     <div>
+      {!hideChrome && (
+        <>
       {nextStep && (
         <div className="mb-3 flex items-center gap-2 rounded-xl border border-gold/40 bg-gold/10 px-3.5 py-2.5 text-[12px] font-semibold">
           <span aria-hidden>⚠️</span> 파이프라인 다음 단계: {nextStep}
@@ -150,37 +166,60 @@ export function SourcingConsole() {
           </button>
         ))}
       </div>
+        </>
+      )}
       {msg && <p className="mt-3 break-all rounded-lg bg-fog p-2.5 text-[11px] text-dim">{msg}</p>}
 
       {/* ── 공급처 ── */}
-      {tab === "공급처" && (
+      {activeTab === "공급처" && (
         <div className="mt-4 space-y-3">
-          {s.suppliers.map((sup) => (
+          {s.suppliers.map((sup) => {
+            const code = str(sup.code);
+            const canUrlImport = ["superbuy", "alibaba", "temu"].includes(code);
+            const live = Boolean(s.connectorStatus?.[code]?.configured);
+            return (
             <div key={num(sup.id)} className="flex flex-wrap items-center gap-3 rounded-xl border border-line p-3.5">
               <div className="min-w-0 flex-1">
-                <p className="text-[14px] font-bold">{str(sup.name)} <span className="text-[11px] font-normal text-dim">({str(sup.code)} · {str(sup.connectorKind)})</span></p>
+                <p className="text-[14px] font-bold">{str(sup.name)} <span className="text-[11px] font-normal text-dim">({code} · {str(sup.connectorKind)})</span></p>
                 <p className="text-[11px] text-dim">리드타임 {num(sup.leadTimeDays)}일 · {str(sup.currency)} · {str(sup.legalNote)}</p>
               </div>
               {badge(str(sup.status))}
-              <button className={btn} disabled={!!busy}
-                onClick={() => run(`${str(sup.code)} sync`, () => api(`/suppliers/${str(sup.code)}/sync`, "POST", {}))}>
-                {busy ? "…" : "카탈로그 수집"}
-              </button>
-              {str(sup.code) === "superbuy" && (
-                <button className={btnGhost} disabled={!!busy}
-                  onClick={() => {
-                    const url = prompt("타오바오/1688 상품 URL");
-                    if (url) void run("URL 임포트", () => api(`/suppliers/superbuy/sync`, "POST", { url }));
-                  }}>URL 임포트</button>
-              )}
+              <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${live ? "bg-sage/15 text-sage" : "bg-gold/20 text-gold"}`}>
+                {live ? "실API" : "목업"}
+              </span>
+              {/* 액션: Import(왼쪽) → 카탈로그 수집(맨 오른쪽) 통일 */}
+              <div className="ml-auto flex shrink-0 items-center gap-2">
+                {canUrlImport && (
+                  <button
+                    type="button"
+                    className={btnGhost}
+                    disabled={!!busy}
+                    onClick={() => {
+                      const url = prompt("상품 URL (타오바오/1688/Temu)");
+                      if (url) void run("URL 임포트", () => api(`/suppliers/${code}/sync`, "POST", { url }));
+                    }}
+                  >
+                    URL 임포트
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className={btn}
+                  disabled={!!busy}
+                  onClick={() => run(`${code} sync`, () => api(`/suppliers/${code}/sync`, "POST", {}))}
+                >
+                  {busy ? "…" : "카탈로그 수집"}
+                </button>
+              </div>
             </div>
-          ))}
-          <p className="text-[11px] text-dim">수집 상품 {s.supplierProducts.length}건 · API 키 미설정 공급처는 목업 픽스처로 동작</p>
+            );
+          })}
+          <p className="text-[11px] text-dim">수집 상품 {s.supplierProducts.length}건 · 실API 배지 공급처만 라이브 카탈로그</p>
         </div>
       )}
 
       {/* ── 소싱상품 ── */}
-      {tab === "소싱상품" && (
+      {activeTab === "소싱상품" && (
         <div className="mt-4">
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <span className="text-[12px] text-dim">{selected.length}개 선택</span>
@@ -232,7 +271,7 @@ export function SourcingConsole() {
       )}
 
       {/* ── 초안승인 ── */}
-      {tab === "초안승인" && (
+      {activeTab === "초안승인" && (
         <div className="mt-4 space-y-4">
           <div className="flex flex-wrap items-center gap-2 rounded-xl bg-fog p-3">
             <p className="flex-1 text-[12px] text-dim">
@@ -283,7 +322,7 @@ export function SourcingConsole() {
       )}
 
       {/* ── 리스팅 ── */}
-      {tab === "리스팅" && (
+      {activeTab === "리스팅" && (
         <div className="mt-4 space-y-3">
           {s.listings.map((l) => {
             const draft = s.drafts.find((d) => num(d.id) === num(l.draftId));
@@ -316,7 +355,7 @@ export function SourcingConsole() {
       )}
 
       {/* ── 구매요청 ── */}
-      {tab === "구매요청" && (
+      {activeTab === "구매요청" && (
         <div className="mt-4 space-y-4">
           <div className="flex flex-wrap items-center gap-2 rounded-xl bg-fog p-3">
             <button className={btn} disabled={!!busy}
@@ -419,7 +458,7 @@ export function SourcingConsole() {
       )}
 
       {/* ── 발주 ── */}
-      {tab === "발주" && (
+      {activeTab === "발주" && (
         <div className="mt-4 overflow-x-auto rounded-xl border border-line">
           <table className="w-full">
             <thead className="bg-fog"><tr>
@@ -453,7 +492,7 @@ export function SourcingConsole() {
       )}
 
       {/* ── 정산 ── */}
-      {tab === "정산" && (
+      {activeTab === "정산" && (
         <div className="mt-4 space-y-4">
           <div className="flex justify-end">
             <button className={btnGhost}

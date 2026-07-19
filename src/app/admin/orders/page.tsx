@@ -1,7 +1,5 @@
-import { OrdersPanel } from "@/components/admin/orders-panel";
+import { redirect } from "next/navigation";
 
-export const metadata = { title: "Admin · Orders" };
-
-export default function AdminOrdersPage() {
-  return <OrdersPanel />;
+export default function AdminOrdersRedirect() {
+  redirect("/hq/orders");
 }

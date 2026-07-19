@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ShieldCheck, Plane, RotateCcw } from "lucide-react";
 import { LexiMark } from "@/components/lexi-mark";
+import { isOpsPath } from "@/lib/ops-path";
 
 const TRUST = [
   { icon: ShieldCheck, title: "정품 직소싱", desc: "브랜드 본사와 직계약, 100% 정품 보증" },
@@ -12,10 +13,8 @@ const TRUST = [
 ];
 
 export function SiteFooter() {
-  const pathname = usePathname() || "/";
-  if (pathname.startsWith("/admin") || pathname.startsWith("/studio")) {
-    return null;
-  }
+  const pathname = usePathname();
+  if (isOpsPath(pathname)) return null;
 
   return (
     <footer className="mt-20 border-t border-line bg-fog">
@@ -40,7 +39,7 @@ export function SiteFooter() {
             <Link href="/support">Support</Link>
             <Link href="/support">Shipping & Duties</Link>
             <Link href="/brands">Brands</Link>
-            <Link href="/admin">Admin</Link>
+            <Link href="/hq">HQ</Link>
           </nav>
           <p>© 2026 LEXI. Curated K-Style, Delivered Worldwide.</p>
         </div>
