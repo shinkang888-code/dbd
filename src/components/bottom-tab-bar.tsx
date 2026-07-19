@@ -13,7 +13,10 @@ const TABS = [
 ];
 
 export function BottomTabBar() {
-  const pathname = usePathname();
+  const pathname = usePathname() || "/";
+  if (pathname.startsWith("/admin") || pathname.startsWith("/studio")) {
+    return null;
+  }
   return (
     <nav
       aria-label="하단 탭"

@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ShieldCheck, Plane, RotateCcw } from "lucide-react";
 import { LexiMark } from "@/components/lexi-mark";
 
@@ -9,6 +12,11 @@ const TRUST = [
 ];
 
 export function SiteFooter() {
+  const pathname = usePathname() || "/";
+  if (pathname.startsWith("/admin") || pathname.startsWith("/studio")) {
+    return null;
+  }
+
   return (
     <footer className="mt-20 border-t border-line bg-fog">
       <div className="mx-auto grid max-w-6xl gap-6 px-4 py-10 sm:grid-cols-3">

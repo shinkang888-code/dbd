@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
  * 개발자센터 [개발정보관리 > API 정보 > 운영자 권한확인 URI]에 이 URL을 등록하면,
  * 앱 설치 시 MENU_LIST / FUNCTION_LIST가 쇼핑몰로 전달되어
  * 대표 운영자가 부운영자·공급사 운영자에게 LEXI Studio 메뉴별 세부 권한을 부여할 수 있다.
- * 구조는 StudioShell 네비게이션과 1:1로 맞춘다.
+ * 구조는 LEXI HQ Ops 내비의 스튜디오 섹션과 맞춘다.
  * 문서 형식: JSON(UTF-8), MENU_LIST/FUNCTION_LIST — code + 선택적 sub.
  */
 const OPERATOR_PERMISSIONS = {

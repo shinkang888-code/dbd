@@ -18,10 +18,10 @@ const GNB = [
 
 export function SiteHeader() {
   const pathname = usePathname() || "/";
-  const demoNext =
-    pathname.startsWith("/studio") || pathname.startsWith("/admin")
-      ? pathname
-      : "/studio";
+  if (pathname.startsWith("/admin") || pathname.startsWith("/studio")) {
+    return null;
+  }
+  const demoNext = "/studio";
 
   return (
     <>

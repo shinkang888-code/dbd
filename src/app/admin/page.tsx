@@ -1,82 +1,149 @@
-// filepath: src/app/admin/page.tsx
 import { DataModeSwitch } from "@/components/data-mode-switch";
-import { AdminShell } from "@/components/admin/admin-shell";
-import { LegacyCommerceBanner } from "@/components/legacy-commerce-banner";
+import { OpsCommandDashboard } from "@/components/ops/ops-command-dashboard";
 import { adminStats } from "@/lib/catalog";
 import { requireSession } from "@/lib/auth/admin";
-import Link from "next/link";
+import { studioDashboard } from "@/lib/studio/store";
+import { cafe24Connected } from "@/lib/cafe24/oauth";
+import { cafe24StatusPayload } from "@/lib/cafe24/config";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Admin" };
-
-const CAFE24_ADMIN_URL =
-  process.env.NEXT_PUBLIC_CAFE24_ADMIN_URL ?? "https://eclogin.cafe24.com/Shop/";
+export const metadata = { title: "LEXI HQ · Command Center" };
 
 export default async function AdminPage() {
   const session = await requireSession();
-  const stats = await adminStats();
-  const cards = [
-    { label: "Cafe24 상품·주문", value: "↗", href: CAFE24_ADMIN_URL, external: true },
-    { label: "Studio 콘텐츠", value: "→", href: "/studio", external: false },
-    { label: "Legacy 상품 preview", value: stats.products, href: "/admin/products", external: false },
-    { label: "Legacy 주문 preview", value: stats.orders, href: "/admin/orders", external: false },
+  const [stats, studio, connected] = await Promise.all([
+    adminStats(),
+    studioDashboard(),
+    cafe24Connected().catch(() => false),
+  ]);
+  const cafe = cafe24StatusPayload();
+
+  const kpis = [
+    {
+      label: "Crawl",
+      value: stats.products,
+      href: "/admin/pipeline/catalog",
+      hint: "카탈로그·상품",
+    },
+    {
+      label: "Import",
+      value: studio.counts.jobs,
+      href: "/admin/pipeline/import",
+      hint: "생성 작업",
+    },
+    {
+      label: "PDP",
+      value: studio.counts.documents,
+      href: "/admin/pipeline/pdp",
+      hint: "콘텐츠 문서",
+    },
+    {
+      label: "Review",
+      value: studio.counts.review,
+      href: "/studio/creator/review",
+      hint: "승인 대기",
+      accent: studio.counts.review > 0,
+    },
+    {
+      label: "Export✓",
+      value: studio.counts.published,
+      href: "/admin/pipeline/export",
+      hint: "게시 완료",
+    },
+  ];
+
+  const actions = [
+    ...(studio.counts.review > 0
+      ? [
+          {
+            title: `승인 대기 PDP ${studio.counts.review}건`,
+            href: "/studio/creator/review",
+            badge: "PDP",
+            priority: "높음",
+          },
+        ]
+      : []),
+    ...(!connected
+      ? [
+          {
+            title: "Cafe24 OAuth 연결 필요",
+            href: "/studio/cafe24",
+            badge: "채널",
+            priority: "높음",
+          },
+        ]
+      : []),
+    {
+      title: "역직구 Supply 모듈 점검",
+      href: "/admin/sourcing",
+      badge: "소싱",
+      priority: "중간",
+    },
+    {
+      title: "분산원장(HDL) 알림 확인",
+      href: "/admin/ledger",
+      badge: "원장",
+      priority: "중간",
+    },
+    {
+      title: "Mobbin 레퍼런스 정리",
+      href: "/studio/mobbin",
+      badge: "Studio",
+      priority: "낮음",
+    },
+  ];
+
+  const channels = [
+    {
+      code: "lexi live",
+      status: cafe.configured ? "READY" : "SETUP",
+      ok: Boolean(cafe.configured),
+    },
+    {
+      code: "cafe24",
+      status: connected ? "LIVE" : "ACTION",
+      ok: connected,
+    },
+    {
+      code: "studio",
+      status: studio.source === "neon" ? "NEON" : "PREVIEW",
+      ok: studio.source === "neon",
+    },
+  ];
+
+  const recent = [
+    {
+      kind: "studio",
+      label: `미디어 ${studio.counts.media} · 섹션 ${studio.counts.sections} · 테마 ${studio.counts.themes}`,
+      at: "live",
+    },
+    {
+      kind: "commerce",
+      label: `상품 ${stats.products} · 주문 ${stats.orders} · 브랜드 ${stats.brands}`,
+      at: stats.source,
+    },
+    {
+      kind: "session",
+      label: session?.user?.email ? `운영자 ${session.user.email}` : "데모/비로그인 — 데모 로그인 권장",
+      at: "now",
+    },
   ];
 
   return (
-    <AdminShell>
-      <LegacyCommerceBanner surface="admin" />
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-[13px] text-dim">
-            {session?.user?.email ? (
-              <>
-                로그인: {session.user.email} · DB source: {stats.source}
-                {"cafe24" in stats && stats.cafe24
-                  ? ` · Cafe24: ${stats.cafe24.configured ? "ON" : "OFF"}`
-                  : ""}
-              </>
-            ) : (
-              <>
-                <Link href="/auth/sign-in" className="font-bold text-coral">
-                  로그인
-                </Link>
-                {" · "}
-                <a href="/api/auth/demo?next=/admin" className="font-bold text-coral">
-                  데모 로그인
-                </a>
-                {" "}후 관리 API 사용 · DB source: {stats.source}
-              </>
-            )}
-          </p>
-        </div>
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-[11px] text-dim">
+          Cafe24 SoR · Studio 콘텐츠 · HQ 소싱 · HDL · source={stats.source}
+        </p>
         <DataModeSwitch />
       </div>
-      <div className="mt-7 grid grid-cols-2 gap-3 md:grid-cols-4">
-        {cards.map((s) =>
-          s.external ? (
-            <a
-              key={s.label}
-              href={s.href}
-              target="_blank"
-              rel="noreferrer"
-              className="rounded-2xl border border-line p-4 hover:bg-fog"
-            >
-              <p className="text-[12px] font-medium text-dim">{s.label}</p>
-              <p className="price mt-1 text-[26px] font-bold">{s.value}</p>
-            </a>
-          ) : (
-            <Link key={s.label} href={s.href} className="rounded-2xl border border-line p-4 hover:bg-fog">
-              <p className="text-[12px] font-medium text-dim">{s.label}</p>
-              <p className="price mt-1 text-[26px] font-bold">{s.value}</p>
-            </Link>
-          ),
-        )}
-      </div>
-      <p className="mt-8 rounded-xl bg-fog p-4 text-[13px] leading-relaxed text-dim">
-        커머스 원장(상품·재고·주문·결제)은 <strong className="text-ink">Cafe24</strong>입니다. LEXI는
-        Studio에서 디자인·PDP 콘텐츠를 제작·검수·게시하고, Dummy/Real 토글과 HQ 소싱은 운영 보조로
-        유지합니다. 상세: <code>docs/lexi-cafe24-studio-master-spec.md</code>
-      </p>
-    </AdminShell>
+      <OpsCommandDashboard
+        kpis={kpis}
+        actions={actions}
+        channels={channels}
+        recent={recent}
+        source={String(stats.source)}
+      />
+    </div>
   );
 }
