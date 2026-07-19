@@ -39,3 +39,45 @@ export async function cafe24AdminCreateProduct(input: {
     },
   });
 }
+
+export async function cafe24AdminGetProduct(productNo: number) {
+  if (!cafe24AdminConfigured()) throw new Error("Cafe24 Admin token required");
+  return cafe24Fetch<{
+    product?: {
+      product_no: number;
+      product_name?: string;
+      description?: string;
+      summary_description?: string;
+    };
+  }>({
+    scope: "admin",
+    path: `/products/${productNo}`,
+  });
+}
+
+/**
+ * Studio 승인 PDP 게시용 — 상품 상세 HTML(+선택 SEO 필드)만 갱신.
+ * 스킨 파일 직접 수정은 D-002 기본값에 따라 하지 않는다.
+ */
+export async function cafe24AdminUpdateProductDescription(input: {
+  productNo: number;
+  description: string;
+  productName?: string;
+  summaryDescription?: string;
+}) {
+  if (!cafe24AdminConfigured()) throw new Error("Cafe24 Admin token required");
+  const request: Record<string, string> = {
+    description: input.description,
+  };
+  if (input.productName) request.product_name = input.productName;
+  if (input.summaryDescription) request.summary_description = input.summaryDescription;
+  return cafe24Fetch({
+    scope: "admin",
+    method: "PUT",
+    path: `/products/${input.productNo}`,
+    body: {
+      shop_no: cafe24ShopNo(),
+      request,
+    },
+  });
+}

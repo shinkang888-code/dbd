@@ -1,29 +1,42 @@
-# LEXI — Curated K-Style, Delivered Worldwide
+# LEXI Dashboard (dbd)
 
-K-뷰티·패션·라이프스타일 **역직구 커머스 플랫폼**. YesStyle을 역설계해 에디토리얼 커머스로 재설계했다.
-전체 설계 명세: [`docs/lexi-master-spec.md`](docs/lexi-master-spec.md)
+운영용 **Admin · Studio · HQ 소싱 · Mobbin** 대시보드.  
+고객 몰은 [lexistyle](https://github.com/shinkang888-code/lexistyle) — 몰의 `/admin`·`/studio`가 이 앱으로 리다이렉트됩니다.
+
+분리 명세: [`docs/dashboard-split.md`](docs/dashboard-split.md) · Cafe24 Studio: [`docs/lexi-cafe24-studio-master-spec.md`](docs/lexi-cafe24-studio-master-spec.md)
+
+## 역할
+
+| 이 앱 (대시보드) | 몰 (lexistyle) |
+|------------------|----------------|
+| Studio 디자인·PDP 승인·Cafe24 게시 | 스토어프론트 · 결제 preview |
+| HQ 소싱 (CJ/Superbuy/Alibaba/Temu/Cafe24-mall) | wishlist · reviews · 모바일 UX |
+| Mobbin 정리 · Dummy/Real | |
+
+Cafe24 = 상품·주문·결제 SSOT. 스토어프론트 라우트는 **preview 폴백**으로만 유지.
 
 ## Stack
 Next.js 15 (App Router) · Tailwind CSS v4 · Neon PostgreSQL (Drizzle) · Vercel
 
 ## Quick Start
 ```bash
+cp .env.example .env
+# NEXT_PUBLIC_MALL_URL=http://localhost:3000
 npm install
-npm run dev            # http://localhost:3000 — DB 없이 더미 데이터로 동작
+npm run dev            # http://localhost:3000 또는 3001
+npm run smoke:studio   # Studio 경로 스모크
 ```
+
+몰과 **동일 Neon** `DATABASE_URL` / `ADMIN_EMAILS`를 쓰세요. 운영자 로그인은 **이 앱**에서.
 
 ## Neon DB 연결 (선택)
 ```bash
-cp .env.example .env   # DATABASE_URL 입력
-npm run db:push        # 스키마 반영
-npm run seed:dummy     # 더미 데이터 시딩 (real 모드에서는 가드로 차단)
+npm run db:push
+npm run seed:dummy
+npm run seed:studio
 ```
-
-## Dummy / Real 전환
-`/admin` 우상단 토글 → 영향 요약 확인 → `LEXI` 타이핑 → Soft Delete 실행.
-상태는 `site_settings.data_mode`에 영속화되고 `data_mode_audit`에 기록된다.
 
 ## Deploy
 ```bash
-npm run deploy         # vercel --prod + lexi.vercel.app → lexi0,1,2… 별칭 폴백
+npm run deploy         # vercel --prod (dbd 별칭)
 ```

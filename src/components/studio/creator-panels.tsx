@@ -70,10 +70,16 @@ async function jsonFetch(url: string, init?: RequestInit) {
 
 export function MediaLibraryPanel() {
   const [items, setItems] = useState<Media[]>([]);
+  const [query, setQuery] = useState({ q: "", kind: "", tags: "" });
   const [form, setForm] = useState({ kind: "image", name: "", url: "", alt: "", tags: "" });
   const [message, setMessage] = useState("");
   async function load() {
-    setItems((await jsonFetch("/api/studio/media")).items ?? []);
+    const params = new URLSearchParams();
+    if (query.q) params.set("q", query.q);
+    if (query.kind) params.set("kind", query.kind);
+    if (query.tags) params.set("tags", query.tags);
+    const qs = params.toString();
+    setItems((await jsonFetch(`/api/studio/media${qs ? `?${qs}` : ""}`)).items ?? []);
   }
   useEffect(() => {
     void load();
@@ -107,6 +113,15 @@ export function MediaLibraryPanel() {
         <button className="rounded-xl bg-ink py-3 text-[13px] font-bold text-white md:col-span-2">등록</button>
         {message && <p className="text-[12px] text-dim md:col-span-2">{message}</p>}
       </form>
+      <div className="flex flex-wrap gap-2 rounded-2xl border border-line bg-paper p-4">
+        <input className="control flex-1" placeholder="검색 (이름/alt)" value={query.q} onChange={(e) => setQuery({ ...query, q: e.target.value })} />
+        <select className="control w-auto" value={query.kind} onChange={(e) => setQuery({ ...query, kind: e.target.value })}>
+          <option value="">전체 유형</option>
+          {["image", "video", "html", "document"].map((x) => <option key={x}>{x}</option>)}
+        </select>
+        <input className="control flex-1" placeholder="tags (comma)" value={query.tags} onChange={(e) => setQuery({ ...query, tags: e.target.value })} />
+        <button type="button" onClick={() => void load()} className="button-secondary">검색</button>
+      </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((item) => (
           <article key={item.id} className="overflow-hidden rounded-2xl border border-line bg-paper">
@@ -192,7 +207,34 @@ export function GenerationJobsPanel() {
                 <p className="text-[13px] font-bold">#{job.id} {job.kind}</p>
                 <p className="text-[11px] text-dim">product #{job.cafe24ProductNo || "—"} · {job.status}</p>
               </div>
-              {job.status === "failed" && <button onClick={() => jsonFetch("/api/studio/jobs", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: job.id }) }).then(load)} className="text-[11px] font-bold text-coral">Retry</button>}
+              {job.status === "failed" && (
+                <button
+                  onClick={() =>
+                    jsonFetch("/api/studio/jobs", {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ id: job.id }),
+                    }).then(load)
+                  }
+                  className="text-[11px] font-bold text-coral"
+                >
+                  Retry
+                </button>
+              )}
+              {["queued", "processing"].includes(job.status) && (
+                <button
+                  onClick={() =>
+                    jsonFetch("/api/studio/jobs", {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ id: job.id, status: "cancelled" }),
+                    }).then(load)
+                  }
+                  className="text-[11px] font-bold text-dim"
+                >
+                  Cancel
+                </button>
+              )}
             </div>
             {job.error && <p className="mt-2 text-[11px] text-coral">{job.error}</p>}
           </article>
@@ -266,14 +308,20 @@ export function PublishPanel() {
   useEffect(() => {
     void load();
   }, []);
-  async function publish(documentId: number, version?: number) {
+  async function publish(documentId: number, opts?: { version?: number; action?: "publish" | "rollback" }) {
     try {
       const data = await jsonFetch("/api/studio/publish", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ documentId, version }),
+        body: JSON.stringify({
+          documentId,
+          version: opts?.version,
+          action: opts?.action ?? "publish",
+        }),
       });
-      setMessage(`Cafe24 product #${data.productNo} · ${data.status}`);
+      setMessage(
+        `Cafe24 product #${data.productNo} · ${data.status}${data.idempotent ? " (idempotent)" : ""}`,
+      );
       await load();
     } catch (error) {
       setMessage((error as Error).message);
@@ -317,7 +365,14 @@ export function PublishPanel() {
                 <span>문서 {event.documentId} · v{event.version}</span>
                 <span className={event.status === "failed" ? "text-coral" : "text-sage"}>{event.status}</span>
                 <span className="flex-1 truncate text-dim">{event.error || event.remoteRef || event.target}</span>
-                {event.status === "published" && event.version > 1 && <button onClick={() => publish(event.documentId, event.version - 1)} className="font-bold">v{event.version - 1} 롤백</button>}
+                {event.status === "published" && event.version > 1 && (
+                  <button
+                    onClick={() => publish(event.documentId, { version: event.version - 1, action: "rollback" })}
+                    className="font-bold"
+                  >
+                    v{event.version - 1} 롤백
+                  </button>
+                )}
               </div>
               {event.status === "published" && (
                 <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-5">

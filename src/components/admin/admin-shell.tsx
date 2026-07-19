@@ -9,6 +9,7 @@ import { LexiMark } from "@/components/lexi-mark";
 const CAFE24_ADMIN_URL =
   process.env.NEXT_PUBLIC_CAFE24_ADMIN_URL ??
   "https://eclogin.cafe24.com/Shop/";
+const MALL_URL = process.env.NEXT_PUBLIC_MALL_URL ?? "http://localhost:3000";
 
 type Tab = { href: string; label: string; external?: boolean };
 
@@ -16,6 +17,7 @@ const TABS: Tab[] = [
   { href: "/admin", label: "대시보드" },
   { href: "/studio", label: "LEXI Studio" },
   { href: CAFE24_ADMIN_URL, label: "상품·주문·배송 ↗", external: true },
+  { href: MALL_URL, label: "고객 몰 ↗", external: true },
   { href: "/studio/cafe24", label: "Cafe24 연결" },
   { href: "/admin/sourcing", label: "역직구" },
 ];

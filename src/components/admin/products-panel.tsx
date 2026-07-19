@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { LegacyCommerceBanner } from "@/components/legacy-commerce-banner";
 
 type Item = {
   id?: number;
@@ -14,6 +15,8 @@ type Item = {
   brand: string;
   category?: string;
 };
+
+const WRITES_ENABLED = process.env.NEXT_PUBLIC_LEGACY_COMMERCE_WRITE === "true";
 
 export function ProductsPanel() {
   const [items, setItems] = useState<Item[]>([]);
@@ -46,6 +49,10 @@ export function ProductsPanel() {
 
   async function create(e: React.FormEvent) {
     e.preventDefault();
+    if (!WRITES_ENABLED) {
+      setMsg("Legacy 쓰기가 비활성입니다. Cafe24 관리자에서 상품을 등록하세요.");
+      return;
+    }
     const res = await fetch("/api/admin/products", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -61,6 +68,7 @@ export function ProductsPanel() {
   }
 
   async function softDelete(id: number) {
+    if (!WRITES_ENABLED) return;
     await fetch("/api/admin/products", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -71,54 +79,62 @@ export function ProductsPanel() {
 
   return (
     <div className="space-y-6">
+      <LegacyCommerceBanner surface="admin" />
       <p className="text-[12px] text-dim">{msg}</p>
-      <form onSubmit={create} className="grid gap-3 rounded-2xl border border-line p-4 md:grid-cols-2">
-        <h2 className="md:col-span-2 text-[15px] font-bold">상품 등록</h2>
-        {(
-          [
-            ["slug", "slug"],
-            ["name", "상품명"],
-            ["brand", "브랜드"],
-            ["imageUrl", "이미지 URL"],
-          ] as const
-        ).map(([key, label]) => (
-          <label key={key} className="text-[12px] font-medium text-dim">
-            {label}
+      {WRITES_ENABLED ? (
+        <form onSubmit={create} className="grid gap-3 rounded-2xl border border-line p-4 md:grid-cols-2">
+          <h2 className="md:col-span-2 text-[15px] font-bold">상품 등록 (legacy)</h2>
+          {(
+            [
+              ["slug", "slug"],
+              ["name", "상품명"],
+              ["brand", "브랜드"],
+              ["imageUrl", "이미지 URL"],
+            ] as const
+          ).map(([key, label]) => (
+            <label key={key} className="text-[12px] font-medium text-dim">
+              {label}
+              <input
+                className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-[14px] text-ink"
+                value={form[key]}
+                onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+                required={key !== "imageUrl"}
+              />
+            </label>
+          ))}
+          <label className="text-[12px] font-medium text-dim">
+            카테고리
+            <select
+              className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-[14px]"
+              value={form.category}
+              onChange={(e) => setForm({ ...form, category: e.target.value })}
+            >
+              {["beauty", "fashion", "life", "kids"].map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-[12px] font-medium text-dim">
+            가격 USD
             <input
-              className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-[14px] text-ink"
-              value={form[key]}
-              onChange={(e) => setForm({ ...form, [key]: e.target.value })}
-              required={key !== "imageUrl"}
+              type="number"
+              className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-[14px]"
+              value={form.priceUsd}
+              onChange={(e) => setForm({ ...form, priceUsd: Number(e.target.value) })}
             />
           </label>
-        ))}
-        <label className="text-[12px] font-medium text-dim">
-          카테고리
-          <select
-            className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-[14px]"
-            value={form.category}
-            onChange={(e) => setForm({ ...form, category: e.target.value })}
-          >
-            {["beauty", "fashion", "life", "kids"].map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="text-[12px] font-medium text-dim">
-          가격 USD
-          <input
-            type="number"
-            className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-[14px]"
-            value={form.priceUsd}
-            onChange={(e) => setForm({ ...form, priceUsd: Number(e.target.value) })}
-          />
-        </label>
-        <button type="submit" className="md:col-span-2 rounded-xl bg-ink py-3 text-[14px] font-bold text-white">
-          등록
-        </button>
-      </form>
+          <button type="submit" className="md:col-span-2 rounded-xl bg-ink py-3 text-[14px] font-bold text-white">
+            등록
+          </button>
+        </form>
+      ) : (
+        <p className="rounded-2xl border border-dashed border-line p-4 text-[13px] text-dim">
+          Legacy 상품 쓰기는 기본적으로 꺼져 있습니다. 비상 시에만{" "}
+          <code>NEXT_PUBLIC_LEGACY_COMMERCE_WRITE=true</code> 로 활성화하세요.
+        </p>
+      )}
 
       <ul className="divide-y divide-line rounded-2xl border border-line">
         {items.map((p) => (
@@ -131,7 +147,7 @@ export function ProductsPanel() {
                 {p.stock !== undefined ? ` · stock ${p.stock}` : ""}
               </p>
             </div>
-            {p.id !== undefined && (
+            {WRITES_ENABLED && p.id !== undefined && (
               <button
                 type="button"
                 onClick={() => softDelete(p.id!)}

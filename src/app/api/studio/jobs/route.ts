@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createJob, listJobs } from "@/lib/studio/store";
+import { createJob, listJobs, updateJob } from "@/lib/studio/store";
 import { processGenerationJob } from "@/lib/studio/generate";
 import { bad, studioActor, unauthorized } from "@/lib/studio/http";
 import { JOB_KINDS } from "@/lib/studio/types";
@@ -38,6 +38,9 @@ export async function PATCH(req: Request) {
   try {
     const body = await req.json();
     if (!body.id) throw new Error("id required");
+    if (body.status === "cancelled") {
+      return NextResponse.json({ job: await updateJob(Number(body.id), { status: "cancelled" }) });
+    }
     return NextResponse.json(await processGenerationJob(Number(body.id), actor));
   } catch (error) {
     return bad(error, 422);

@@ -21,6 +21,7 @@ import { LexiMark } from "@/components/lexi-mark";
 
 const CAFE24_ADMIN_URL =
   process.env.NEXT_PUBLIC_CAFE24_ADMIN_URL ?? "https://eclogin.cafe24.com/Shop/";
+const MALL_URL = process.env.NEXT_PUBLIC_MALL_URL ?? "http://localhost:3000";
 
 const NAV = [
   { href: "/studio", label: "개요", icon: LayoutDashboard },
@@ -78,6 +79,14 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
             >
               <ShoppingBag className="size-4" />
               Cafe24 쇼핑몰 운영 ↗
+            </a>
+            <a
+              href={MALL_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-2 flex items-center gap-2 rounded-xl border border-line px-3 py-2.5 text-[12px] font-semibold text-ink hover:bg-fog"
+            >
+              고객 몰 (lexistyle) ↗
             </a>
             <Link
               href="/admin/sourcing"

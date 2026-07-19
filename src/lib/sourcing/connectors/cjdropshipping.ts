@@ -38,6 +38,16 @@ async function cj(path: string, init?: RequestInit) {
   return json?.data;
 }
 
+/** CJ 가격은 단일("4.70") 또는 범위("2.50-4.20", "2.50 -- 4.20") 문자열/숫자로 온다.
+ *  범위면 최저가를 취한다. 파싱 실패 시 0. */
+function parseCjPrice(v: unknown): number {
+  if (typeof v === "number") return Number.isFinite(v) ? v : 0;
+  if (typeof v !== "string") return 0;
+  const nums = v.match(/\d+(\.\d+)?/g);
+  if (!nums || nums.length === 0) return 0;
+  return Math.min(...nums.map(Number).filter(Number.isFinite));
+}
+
 function mapProduct(p: Record<string, unknown>): RemoteProduct {
   const images = Array.isArray(p.productImage)
     ? (p.productImage as string[]).map((url) => ({ url }))
@@ -50,9 +60,9 @@ function mapProduct(p: Record<string, unknown>): RemoteProduct {
     title: String(p.productNameEn ?? p.productName ?? "Untitled"),
     descriptionHtml: p.description ? String(p.description) : undefined,
     categoryPath: String(p.categoryName ?? "General").split(">").map((s) => s.trim()),
-    price: Number(p.sellPrice ?? p.price ?? 0),
+    price: parseCjPrice(p.sellPrice ?? p.price),
     currency: "USD",
-    stock: Number(p.listedNum ?? p.stock ?? 0),
+    stock: Number(p.listedNum ?? p.stock ?? 0) || 0,
     sellerName: "CJDropshipping",
     sellerInfo: { supplierId: p.supplierId, warehouse: p.sourceFrom },
     images,
