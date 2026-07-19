@@ -20,6 +20,7 @@ const TABS: Tab[] = [
   { href: MALL_URL, label: "고객 몰 ↗", external: true },
   { href: "/studio/cafe24", label: "Cafe24 연결" },
   { href: "/admin/sourcing", label: "역직구" },
+  { href: "/admin/ledger", label: "분산원장" },
 ];
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
@@ -33,13 +34,17 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             LEXI Admin
           </h1>
           <p className="mt-1 text-[13px] text-dim">
-            Legacy HQ · 쇼핑몰 원장 운영은 Cafe24, 디자인·콘텐츠는 LEXI Studio
+            dbd · Cafe24 커머스 · Studio 콘텐츠 · HDL 분산원장
           </p>
         </div>
         <nav className="flex gap-1 rounded-full border border-line bg-fog p-1">
           {TABS.map((t) => {
+            const active =
+              t.href === "/admin"
+                ? path === "/admin"
+                : path === t.href || path.startsWith(`${t.href}/`);
             const cls = `rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-colors ${
-              path === t.href ? "bg-ink text-white" : "text-dim hover:text-ink"
+              active ? "bg-ink text-white" : "text-dim hover:text-ink"
             }`;
             // Cafe24 관리자: 새 탭으로 외부 대시보드 열기
             if (t.external) {

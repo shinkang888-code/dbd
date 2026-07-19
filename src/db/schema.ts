@@ -574,3 +574,72 @@ export const mobbinApplyRuns = pgTable("mobbin_apply_runs", {
   note: text("note"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+/* ============================================================
+ * Hybrid Distributed Ledger (HDL) — LawyGo 이식
+ * H_v 신원 해시 → H_i 거래 체인 → Merkle 블록 → 외부 앵커
+ * @see docs/hybrid-ledger.md
+ * ============================================================ */
+
+export const identityVerificationHashes = pgTable("identity_verification_hashes", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  tenantId: text("tenant_id").notNull(),
+  userId: text("user_id").notNull(),
+  verificationResult: text("verification_result").notNull(), // approved
+  verifiedAt: timestamp("verified_at", { withTimezone: true }).notNull(),
+  hV: text("h_v").notNull(),
+  sessionRef: text("session_ref"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const ledgerTransactions = pgTable("ledger_transactions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  tenantId: text("tenant_id").notNull(),
+  stream: text("stream").notNull(),
+  sourceTable: text("source_table").notNull(),
+  /** bigint/UUID 모두 수용 — 문자열로 저장 */
+  sourceId: text("source_id"),
+  transData: jsonb("trans_data").notNull(),
+  hVId: uuid("h_v_id").notNull(),
+  prevHash: text("prev_hash"),
+  txHash: text("tx_hash"),
+  status: text("status").notNull().default("pending"), // pending|chained|block_assigned|tampered
+  blockId: uuid("block_id"),
+  seq: bigint("seq", { mode: "number" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const ledgerBlocks = pgTable("ledger_blocks", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  tenantId: text("tenant_id").notNull(),
+  stream: text("stream").notNull(),
+  blockHeight: bigint("block_height", { mode: "number" }).notNull(),
+  prevBlockHash: text("prev_block_hash"),
+  merkleRoot: text("merkle_root").notNull(),
+  blockHash: text("block_hash").notNull(),
+  txCount: integer("tx_count").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const ledgerAnchors = pgTable("ledger_anchors", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  blockId: uuid("block_id").notNull(),
+  merkleRoot: text("merkle_root").notNull(),
+  anchorHash: text("anchor_hash").notNull(),
+  externalNetwork: text("external_network").notNull().default("dbd_timestamp_v1"),
+  externalBlockHeight: bigint("external_block_height", { mode: "number" }),
+  externalTxId: text("external_tx_id"),
+  anchorProof: jsonb("anchor_proof").default({}),
+  anchoredAt: timestamp("anchored_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const ledgerIntegrityAlerts = pgTable("ledger_integrity_alerts", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  tenantId: text("tenant_id").notNull(),
+  alertType: text("alert_type").notNull(),
+  tamperPointTxId: uuid("tamper_point_tx_id"),
+  details: jsonb("details").default({}),
+  replayStatus: text("replay_status").notNull().default("pending"), // pending|running|completed|failed
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+});

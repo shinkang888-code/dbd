@@ -2,6 +2,7 @@
   "framework": "nextjs",
   "crons": [
     { "path": "/api/cron/supplier-sync", "schedule": "0 18 * * *" },
-    { "path": "/api/cron/publish-worker", "schedule": "30 18 * * *" }
+    { "path": "/api/cron/publish-worker", "schedule": "30 18 * * *" },
+    { "path": "/api/cron/ledger-worker", "schedule": "*/15 * * * *" }
   ]
 }

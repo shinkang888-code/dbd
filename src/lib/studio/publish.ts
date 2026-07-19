@@ -6,6 +6,7 @@ import {
   cafe24AdminUpdateProductDescription,
 } from "@/lib/cafe24/admin-products";
 import { cafe24ShopNo } from "@/lib/cafe24/config";
+import { recordLedgerEvent } from "@/lib/ledger";
 
 export async function publishDocumentToCafe24(input: {
   documentId: number;
@@ -141,6 +142,20 @@ export async function publishDocumentToCafe24(input: {
         updatedAt: new Date(),
       })
       .where(eq(contentDocuments.id, doc.id));
+
+    await recordLedgerEvent({
+      stream: "publish",
+      sourceTable: "publish_events",
+      sourceId: event.id,
+      eventType: input.version ? "cafe24_rollback" : "cafe24_publish",
+      payload: {
+        documentId: doc.id,
+        version,
+        productNo: doc.cafe24ProductNo,
+        status: input.version ? "rolled_back" : "published",
+      },
+      actorLoginId: input.actor,
+    });
 
     return {
       eventId: event.id,

@@ -43,6 +43,16 @@ export async function reviewDraft(
     };
     s.listings.unshift(listing);
     audit(s, "listing", listing.id, "ready", actor, undefined, { costUsd, sellPriceUsd: listing.sellPriceUsd });
+    void import("@/lib/ledger").then(({ recordLedgerEvent }) =>
+      recordLedgerEvent({
+        stream: "publish",
+        sourceTable: "listings",
+        sourceId: listing.id,
+        eventType: "listing_approved",
+        payload: { listingId: listing.id, draftId: draft.id, status: "ready", costUsd, sellPriceUsd: listing.sellPriceUsd },
+        actorLoginId: actor,
+      }),
+    );
     return { draft, listing };
   });
 }
@@ -97,6 +107,16 @@ export async function processPublishQueue(limit = 10) {
         if (listing.status === "ready") listing.status = "published";
         audit(s, "channel_listing", cl.id, "live", "system", "queued", { externalRef });
         results.push({ id: cl.id, state: "live" });
+        void import("@/lib/ledger").then(({ recordLedgerEvent }) =>
+          recordLedgerEvent({
+            stream: "publish",
+            sourceTable: "channel_listings",
+            sourceId: cl.id,
+            eventType: "channel_publish_live",
+            payload: { channel: channel.code, listingId: listing.id, externalRef, status: "live" },
+            actorLoginId: "system",
+          }),
+        );
       } catch (e) {
         cl.retryCount += 1;
         cl.publishState = cl.retryCount >= 3 ? "failed" : "queued";
@@ -197,6 +217,21 @@ export async function importPurchaseCsv(channelCode: string, filename: string, c
       else batch.okCount++;
     });
     s.importBatches.unshift(batch);
+    void import("@/lib/ledger").then(({ recordLedgerEvent }) =>
+      recordLedgerEvent({
+        stream: "purchase",
+        sourceTable: "import_batches",
+        sourceId: batch.id,
+        eventType: "purchase_import",
+        payload: {
+          channel: channelCode,
+          rowCount: batch.rowCount,
+          okCount: batch.okCount,
+          status: "imported",
+        },
+        actorLoginId: actor,
+      }),
+    );
     return { batchId: batch.id, rowCount: batch.rowCount, okCount: batch.okCount, errors: batch.errorRows, expectedHeaders: DEFAULT_HEADERS };
   });
 }
@@ -302,6 +337,22 @@ export async function createSourcingOrder(prId: number, actor: string) {
     s.sourcingOrders.unshift(so);
     pr.status = "sourcing";
     audit(s, "sourcing_order", so.id, so.status, actor, undefined, { supplierOrderRef });
+    void import("@/lib/ledger").then(({ recordLedgerEvent }) =>
+      recordLedgerEvent({
+        stream: "sourcing",
+        sourceTable: "sourcing_orders",
+        sourceId: so.id,
+        eventType: "sourcing_order_created",
+        payload: {
+          purchaseRequestId: pr.id,
+          supplierId: supplier.id,
+          status: so.status,
+          costUsd: so.costUsd,
+          supplierOrderRef,
+        },
+        actorLoginId: actor,
+      }),
+    );
     return so;
   });
 }
@@ -374,6 +425,21 @@ export async function confirmSettlement(id: number, actor: string) {
       if (pr) pr.status = "closed";
     }
     audit(s, "settlement", st.id, "confirmed", actor, "pending");
+    void import("@/lib/ledger").then(({ recordLedgerEvent }) =>
+      recordLedgerEvent({
+        stream: "settlement",
+        sourceTable: "settlements",
+        sourceId: st.id,
+        eventType: "settlement_confirmed",
+        payload: {
+          sourcingOrderId: st.sourcingOrderId,
+          marginUsd: st.marginUsd,
+          revenueUsd: st.revenueUsd,
+          status: "confirmed",
+        },
+        actorLoginId: actor,
+      }),
+    );
     return st;
   });
 }
