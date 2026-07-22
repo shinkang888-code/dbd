@@ -4,9 +4,22 @@ import { bad, studioActor, unauthorized } from "@/lib/studio/http";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: Request) {
   if (!(await studioActor())) return unauthorized();
-  return NextResponse.json({ items: await listMedia() });
+  const url = new URL(req.url);
+  const tags = url.searchParams.get("tags");
+  return NextResponse.json({
+    items: await listMedia({
+      q: url.searchParams.get("q") || undefined,
+      kind: url.searchParams.get("kind") || undefined,
+      tags: tags
+        ? tags
+            .split(",")
+            .map((t) => t.trim())
+            .filter(Boolean)
+        : undefined,
+    }),
+  });
 }
 
 export async function POST(req: Request) {

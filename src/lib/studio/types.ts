@@ -60,3 +60,24 @@ export function safeStatus(value: unknown): StudioStatus {
   ];
   return allowed.includes(value as StudioStatus) ? (value as StudioStatus) : "draft";
 }
+
+/** draft → review → approved|rejected → published; rejected/approved → draft 재작업 허용 */
+const DOCUMENT_TRANSITIONS: Record<StudioStatus, StudioStatus[]> = {
+  draft: ["review", "archived"],
+  review: ["approved", "rejected", "draft"],
+  approved: ["published", "draft", "archived"],
+  rejected: ["draft", "archived"],
+  published: ["draft", "archived"],
+  archived: ["draft"],
+};
+
+export function assertDocumentTransition(from: string, to: string) {
+  const current = safeStatus(from);
+  const next = safeStatus(to);
+  if (current === next) return next;
+  const allowed = DOCUMENT_TRANSITIONS[current] ?? [];
+  if (!allowed.includes(next)) {
+    throw new Error(`문서 상태 전이 불가: ${current} → ${next}`);
+  }
+  return next;
+}

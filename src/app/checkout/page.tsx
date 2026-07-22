@@ -1,6 +1,7 @@
 // filepath: src/app/checkout/page.tsx
 import Link from "next/link";
 import { CheckoutForm } from "@/components/checkout-form";
+import { LegacyCommerceBanner } from "@/components/legacy-commerce-banner";
 import { readCart } from "@/lib/cart-store";
 
 export const metadata = { title: "Checkout" };
@@ -11,6 +12,7 @@ export default async function CheckoutPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8 pb-16">
+      <LegacyCommerceBanner surface="checkout" />
       <h1 className="font-display text-[30px] font-semibold">Checkout</h1>
       <p className="mt-1 text-[13px] text-dim">
         Step 1/3 배송 · 게스트 가능 ·{" "}

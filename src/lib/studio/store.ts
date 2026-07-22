@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gt, isNull, lt, or } from "drizzle-orm";
+import { and, asc, desc, eq, gt, ilike, isNull, lt, or, sql } from "drizzle-orm";
 import { db, hasDb } from "@/db";
 import {
   contentDocuments,
@@ -10,7 +10,7 @@ import {
   mediaAssets,
   publishEvents,
 } from "@/db/schema";
-import type { SectionPayload, ThemeTokens } from "./types";
+import { assertDocumentTransition, type SectionPayload, type ThemeTokens } from "./types";
 
 const now = () => new Date();
 
@@ -223,6 +223,9 @@ export async function updateDocument(
   if (current.status === "published" && patch.status === "published") {
     throw new Error("published document must create a new version before republish");
   }
+  const nextStatus = patch.status
+    ? assertDocumentTransition(current.status, patch.status)
+    : undefined;
   const nextVersion = patch.body || patch.renderedHtml ? current.currentVersion + 1 : current.currentVersion;
   const [row] = await db()
     .update(contentDocuments)
@@ -230,8 +233,8 @@ export async function updateDocument(
       ...(patch.title ? { title: patch.title } : {}),
       ...(patch.body ? { body: patch.body } : {}),
       ...(patch.renderedHtml !== undefined ? { renderedHtml: patch.renderedHtml } : {}),
-      ...(patch.status ? { status: patch.status } : {}),
-      ...(patch.status === "approved"
+      ...(nextStatus ? { status: nextStatus } : {}),
+      ...(nextStatus === "approved"
         ? { reviewedBy: patch.actor, reviewedAt: now() }
         : {}),
       currentVersion: nextVersion,
@@ -239,8 +242,8 @@ export async function updateDocument(
     })
     .where(eq(contentDocuments.id, id))
     .returning();
-  if (nextVersion !== current.currentVersion || patch.status) {
-    await snapshotDocument(id, patch.actor, patch.status ?? "updated");
+  if (nextVersion !== current.currentVersion || nextStatus) {
+    await snapshotDocument(id, patch.actor, nextStatus ?? "updated");
   }
   return row;
 }
@@ -279,9 +282,22 @@ export async function snapshotDocument(documentId: number, actor: string, note?:
   return row;
 }
 
-export async function listMedia() {
+export async function listMedia(filters?: { q?: string; kind?: string; tags?: string[] }) {
   if (!hasDb()) return [];
-  return db().select().from(mediaAssets).orderBy(desc(mediaAssets.createdAt));
+  const conditions = [];
+  if (filters?.kind) conditions.push(eq(mediaAssets.kind, filters.kind));
+  if (filters?.q) {
+    const q = `%${filters.q}%`;
+    conditions.push(or(ilike(mediaAssets.name, q), ilike(mediaAssets.alt, q)));
+  }
+  if (filters?.tags?.length) {
+    conditions.push(sql`${mediaAssets.tags} && ${filters.tags}::text[]`);
+  }
+  const query = db().select().from(mediaAssets);
+  if (conditions.length) {
+    return query.where(and(...conditions)).orderBy(desc(mediaAssets.createdAt));
+  }
+  return query.orderBy(desc(mediaAssets.createdAt));
 }
 
 export async function createMedia(input: {

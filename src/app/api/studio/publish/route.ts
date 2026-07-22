@@ -16,10 +16,13 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     if (!body.documentId) throw new Error("documentId required");
+    const action =
+      body.action === "rollback" || body.version ? ("rollback" as const) : ("publish" as const);
     return NextResponse.json(
       await publishDocumentToCafe24({
         documentId: Number(body.documentId),
         actor,
+        action,
         version: body.version ? Number(body.version) : undefined,
       }),
     );

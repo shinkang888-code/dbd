@@ -44,13 +44,21 @@ export async function processGenerationJob(jobId: number, actor: string) {
       : product?.image
         ? [product.image]
         : [];
-    const output = buildOutput(job.kind, {
+    let output = buildOutput(job.kind, {
       title,
       brief,
       brand: product?.brand || "LEXI",
       price: product?.price,
       images,
     });
+
+    if (job.kind === "video" || job.kind === "storyboard") {
+      output = await maybeRenderWithRemotion(output, {
+        title,
+        brand: product?.brand || "LEXI",
+        images,
+      });
+    }
 
     let documentId = job.documentId ?? undefined;
     if (job.kind === "pdp" && !documentId) {
@@ -70,7 +78,14 @@ export async function processGenerationJob(jobId: number, actor: string) {
         .where(eq(generationJobs.id, job.id));
     }
 
-    const completed = await updateJob(jobId, { status: "completed", output });
+    const completed = await updateJob(jobId, {
+      status: "completed",
+      output: {
+        ...output,
+        model: "lexi-studio-deterministic-v1",
+        costUsd: 0,
+      },
+    });
     return { job: completed, documentId };
   } catch (error) {
     await updateJob(jobId, {
@@ -78,6 +93,55 @@ export async function processGenerationJob(jobId: number, actor: string) {
       error: error instanceof Error ? error.message : "generation failed",
     });
     throw error;
+  }
+}
+
+/**
+ * Remotion 워커(REMOTION_WORKER_URL)가 있으면 렌더 요청.
+ * 없으면 D-006 기본값: storyboard preview 유지.
+ */
+async function maybeRenderWithRemotion(
+  output: Record<string, unknown>,
+  ctx: { title: string; brand: string; images: string[] },
+): Promise<Record<string, unknown>> {
+  const worker = process.env.REMOTION_WORKER_URL?.trim();
+  if (!worker) {
+    return { ...output, status: "storyboard_ready", remotion: "preview" };
+  }
+  try {
+    const scenes = Array.isArray(output.scenes) ? output.scenes : [];
+    const res = await fetch(new URL("/render", worker).toString(), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        brand: ctx.brand,
+        images: ctx.images,
+        scenes: scenes.map((s, i) => {
+          const scene = s as { duration?: number; text?: string; image?: string };
+          return {
+            duration: scene.duration ?? 4,
+            imageIndex: Math.min(i, Math.max(ctx.images.length - 1, 0)),
+            overlayText: scene.text ?? ctx.title,
+          };
+        }),
+      }),
+      signal: AbortSignal.timeout(120_000),
+    });
+    if (!res.ok) throw new Error(`Remotion worker ${res.status}`);
+    const data = (await res.json()) as { url?: string; path?: string };
+    return {
+      ...output,
+      status: "video_ready",
+      remotion: "rendered",
+      videoUrl: data.url ?? data.path ?? null,
+    };
+  } catch (error) {
+    return {
+      ...output,
+      status: "storyboard_ready",
+      remotion: "preview",
+      remotionError: error instanceof Error ? error.message : "render failed",
+    };
   }
 }
 
